@@ -8,6 +8,12 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*/.ipynb_checkpoints/
+*/*.ipynb
+*.ipynb
+
 # Données et modèles locaux
 data/
 models/
@@ -24,3 +30,9 @@ artifacts/*.pkl
 .vscode/
 .DS_Store
 .idea/
+
+# Metadata de build
+*.egg-info/
+
+# Metadata de build
+*.egg-info/

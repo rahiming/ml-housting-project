@@ -1,13 +1,11 @@
-"""Tests for data loading and preprocessing."""
-
-import pytest
+from ml_housing.data import load_housing_data
 
 
-def test_load_data():
-    """Test data loading functionality."""
-    pass
+def test_load_housing_data_not_empty():
+    df = load_housing_data()
+    assert not df.empty
 
 
-def test_split_data():
-    """Test data splitting functionality."""
-    pass
+def test_target_column_exists():
+    df = load_housing_data()
+    assert "MedHouseVal" in df.columns
