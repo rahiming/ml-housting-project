@@ -8,7 +8,7 @@ from ml_housing.preprocessing import get_preprocessing_pipeline
 
 
 def test_get_preprocessing_pipeline_returns_pipeline():
-    """Vérifie que la fonction retourne bien un objet Pipeline avec les étapes attendues."""
+    """Vérifie que la fonction retourne un Pipeline avec les étapes attendues."""
     pipeline = get_preprocessing_pipeline()
     assert isinstance(pipeline, Pipeline)
 

@@ -20,6 +20,7 @@ dev = [
     "pytest-cov",
     "ruff",
     "ipykernel",
+    "httpx",
 ]
 
 [tool.setuptools.packages.find]
@@ -27,7 +28,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 
 [tool.ruff]
 line-length = 88
