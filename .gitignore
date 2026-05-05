@@ -11,12 +11,12 @@ __pycache__/
 # Jupyter Notebooks
 .ipynb_checkpoints/
 */.ipynb_checkpoints/
-*/*.ipynb
 *.ipynb
 
 # Données et modèles locaux
 data/
 models/
+artifacts/
 artifacts/*.joblib
 artifacts/*.pkl
 *.pkl

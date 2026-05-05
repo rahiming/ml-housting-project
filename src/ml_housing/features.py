@@ -6,10 +6,10 @@ from sklearn.model_selection import train_test_split
 TARGET_COLUMN = "MedHouseVal"
 
 
-def split_features_target(df: pd.DataFrame):
+def split_features_target(df: pd.DataFrame, target_column: str = TARGET_COLUMN):
     """Sépare les variables explicatives X et la cible y."""
-    X = df.drop(columns=[TARGET_COLUMN])
-    y = df[TARGET_COLUMN]
+    X = df.drop(columns=[target_column])
+    y = df[target_column]
     return X, y
 
 

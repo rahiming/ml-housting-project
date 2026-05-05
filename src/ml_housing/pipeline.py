@@ -11,7 +11,26 @@ from ml_housing.features import split_features_target, split_train_test
 from ml_housing.train import train_model
 
 
-def run_pipeline(artifacts_dir: str = "artifacts") -> dict:
+def get_next_version(artifacts_dir: str = "artifacts") -> str:
+    """Trouve le prochain numéro de version dans le dossier artifacts."""
+    path = Path(artifacts_dir).resolve()
+    if not path.exists():
+        return "v1"
+
+    existing_versions = []
+    for f in path.glob("model_v*.joblib"):
+        try:
+            # Extrait le nombre après '_v' (ex: model_v2.joblib -> 2)
+            v_num = int(f.stem.split("_v")[-1])
+            existing_versions.append(v_num)
+        except (ValueError, IndexError):
+            continue
+
+    next_v = max(existing_versions, default=0) + 1
+    return f"v{next_v}"
+
+
+def run_pipeline(artifacts_dir: str = "artifacts", version: str = "") -> dict:
     """Exécute le pipeline ML complet en local."""
     artifacts_path = Path(artifacts_dir).resolve()
     artifacts_path.mkdir(parents=True, exist_ok=True)
@@ -23,8 +42,12 @@ def run_pipeline(artifacts_dir: str = "artifacts") -> dict:
     model = train_model(X_train, y_train)
     metrics = evaluate_model(model, X_test, y_test)
 
-    joblib.dump(model, artifacts_path / "model.joblib")
-    with open(artifacts_path / "metrics.json", "w", encoding="utf-8") as file:
+    suffix = f"_{version}" if version else ""
+    model_path = artifacts_path / f"model{suffix}.joblib"
+    metrics_path = artifacts_path / f"metrics{suffix}.json"
+
+    joblib.dump(model, model_path)
+    with open(metrics_path, "w", encoding="utf-8") as file:
         json.dump(metrics, file, indent=2)
 
     return metrics
