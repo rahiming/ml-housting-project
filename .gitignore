@@ -1,4 +1,26 @@
-.env
-.qodo
-mon_env
+# Environnements Python
 .venv/
+venv/
+mon_env/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+
+# Données et modèles locaux
+data/
+models/
+artifacts/*.joblib
+artifacts/*.pkl
+*.pkl
+*.joblib
+
+# Secrets
+.env
+*.key
+
+# Système / IDE
+.vscode/
+.DS_Store
+.idea/
