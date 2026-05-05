@@ -1,3 +1,4 @@
 .env
 .qodo
 mon_env
+.venv/
