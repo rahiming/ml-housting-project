@@ -83,4 +83,4 @@ jobs:
       - name: Install Pytest
         run: pip install pytest
       - name: Run Structure Check
-        run: pytest scripts/check_project_structure.py
+        run: pytest tests/test_project_structure.py
