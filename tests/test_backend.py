@@ -45,9 +45,9 @@ def test_predict_endpoint(mock_get_model):
     called_args, _ = mock_model.predict.call_args
     input_data = called_args[0]
 
-    assert isinstance(input_data, pd.DataFrame), (
-        "Le backend doit envoyer un DataFrame au pipeline"
-    )
-    assert list(input_data.columns) == list(payload.keys()), (
-        "Les colonnes doivent correspondre aux features brutes"
-    )
+    assert isinstance(
+        input_data, pd.DataFrame
+    ), "Le backend doit envoyer un DataFrame au pipeline"
+    assert list(input_data.columns) == list(
+        payload.keys()
+    ), "Les colonnes doivent correspondre aux features brutes"
