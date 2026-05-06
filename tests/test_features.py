@@ -1,5 +1,5 @@
-from src.training.data import load_housing_data
 from src.common.features import split_features_target, split_train_test
+from src.training.data import load_housing_data
 
 
 def test_split_features_target():

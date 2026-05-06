@@ -1,4 +1,5 @@
 import pandas as pd
+
 from src.prediction.model_loader import get_model
 
 

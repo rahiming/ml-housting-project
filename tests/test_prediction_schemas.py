@@ -1,5 +1,6 @@
 import pytest
 from pydantic import ValidationError
+
 from src.prediction.schemas import HousingFeatures
 
 

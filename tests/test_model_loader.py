@@ -1,6 +1,6 @@
-from unittest.mock import patch, MagicMock
 from pathlib import Path
-import pytest
+from unittest.mock import MagicMock, patch
+
 from src.prediction.model_loader import get_latest_model
 
 

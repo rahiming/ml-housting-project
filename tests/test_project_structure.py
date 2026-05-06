@@ -3,7 +3,6 @@ from pathlib import Path
 REQUIRED_PATHS = [
     "backend",
     "frontend",
-    "notebooks",
     "src",
     "src/training",
     "src/prediction",

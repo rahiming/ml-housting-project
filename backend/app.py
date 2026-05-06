@@ -1,6 +1,7 @@
 from fastapi import FastAPI
-from src.prediction.schemas import HousingFeatures
+
 from src.prediction.predict import make_prediction
+from src.prediction.schemas import HousingFeatures
 
 app = FastAPI()
 

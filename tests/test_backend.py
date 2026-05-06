@@ -1,6 +1,5 @@
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import pandas as pd
 from fastapi.testclient import TestClient
 
 from backend.app import app
