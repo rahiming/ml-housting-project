@@ -16,7 +16,8 @@ __pycache__/
 # Données et modèles locaux
 data/
 models/
-artifacts/
+artifacts/*
+!.gitkeep
 artifacts/*.joblib
 artifacts/*.pkl
 *.pkl

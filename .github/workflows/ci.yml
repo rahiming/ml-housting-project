@@ -94,5 +94,6 @@ jobs:
       - uses: actions/checkout@v4
       - name: Build Backend and Frontend Images
         run: |
+          mkdir -p artifacts
           docker build -t housing-backend -f backend/Dockerfile .
           docker build -t housing-frontend -f frontend/Dockerfile .
