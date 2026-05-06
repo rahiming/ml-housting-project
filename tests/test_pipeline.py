@@ -20,3 +20,12 @@ def test_get_next_version_logic(tmp_path):
     (tmp_path / "models").mkdir(parents=True)
     (tmp_path / "models" / "model_v1.joblib").touch()
     assert get_next_version(str(tmp_path)) == "v2"
+
+
+def test_get_next_version_with_invalid_files(tmp_path):
+    """Vérifie que les fichiers mal nommés sont ignorés lors du versioning."""
+    models_dir = tmp_path / "models"
+    models_dir.mkdir()
+    (models_dir / "model_vINVALID.joblib").touch()
+    (models_dir / "model_v1.joblib").touch()
+    assert get_next_version(str(tmp_path)) == "v2"

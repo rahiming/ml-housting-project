@@ -1,4 +1,5 @@
 import os
+
 import requests
 import streamlit as st
 
@@ -34,9 +35,7 @@ if st.button("Calculer l'estimation", type="primary"):
         "Longitude": longitude,
     }
     try:
-        response = requests.post(
-            f"{BACKEND_URL}/predict", json=payload, timeout=20
-        )
+        response = requests.post(f"{BACKEND_URL}/predict", json=payload, timeout=20)
         response.raise_for_status()
         prediction = response.json()["prediction"]
 
