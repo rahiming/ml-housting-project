@@ -1,4 +1,4 @@
-from ml_housing.pipeline import run_pipeline
+from src.training.pipeline import run_pipeline
 
 
 def test_pipeline_returns_metrics(tmp_path):

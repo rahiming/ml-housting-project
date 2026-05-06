@@ -4,18 +4,33 @@
 
 A machine learning project for housing price prediction.
 
-## Project Structure
+## 🎯 Présentation du Projet
+
+Ce projet implémente une solution complète de prédiction des prix immobiliers (basée sur le dataset California Housing). L'objectif est de démontrer une approche **MLOps** robuste en séparant clairement le cycle de vie de l'entraînement de celui de l'inférence.
+
+**Points clés :**
+- **Modularité** : Séparation stricte entre le code d'entraînement (`src/training`) et de prédiction (`src/prediction`).
+- **API de Production** : Backend performant avec FastAPI.
+- **Interface Utilisateur** : Frontend intuitif avec Streamlit.
+- **CI/CD Moderne** : Pipeline GitHub Actions incluant linting, tests, sécurité (Bandit) et validation Docker.
+
+## 🏗️ Project Structure
 
 ```
 ml-housing-project/
 ├── src/
-│   └── ml_housing/
-│       ├── __init__.py
-│       ├── data.py
-│       ├── features.py
-│       ├── train.py
-│       ├── evaluate.py
-│       └── pipeline.py
+│   ├── training/         # Pipeline d'entraînement (Dev uniquement)
+│   │   ├── train.py
+│   │   ├── evaluate.py
+│   │   ├── data.py
+│   │   ├── preprocessing.py
+│   │   └── pipeline.py
+│   ├── common/           # Utilitaires partagés (Production - OUI)
+│   │   └── features.py   # Logique de transformation commune
+│   ├── prediction/       # Logique de prédiction (Production - OUI)
+│   │   ├── predict.py
+│   │   ├── schemas.py
+│   │   └── model_loader.py
 ├── tests/
 │   ├── __init__.py
 │   ├── test_data.py
@@ -29,12 +44,18 @@ ml-housing-project/
 └── main.py
 ```
 
-## Installation
+## ⚙️ Installation
 
-Install dependencies:
+1. **Préparer l'environnement** :
+```bash
+python -m venv .venv
+source .venv/bin/activate  # ou .venv\Scripts\activate sur Windows
+```
 
+2. **Installer les dépendances** :
 ```bash
 pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
 ## Usage

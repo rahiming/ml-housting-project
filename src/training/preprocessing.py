@@ -4,7 +4,7 @@ from sklearn.impute import SimpleImputer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import FunctionTransformer, StandardScaler
 
-from ml_housing.features import engineer_features, engineer_features_names
+from src.common.features import engineer_features, engineer_features_names
 
 
 def get_preprocessing_pipeline() -> Pipeline:

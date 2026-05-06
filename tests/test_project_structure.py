@@ -3,7 +3,11 @@ from pathlib import Path
 REQUIRED_PATHS = [
     "backend",
     "frontend",
+    "notebooks",
     "src",
+    "src/training",
+    "src/prediction",
+    "src/common",
     "tests",
     "requirements.txt",
     "pyproject.toml",

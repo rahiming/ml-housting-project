@@ -50,7 +50,8 @@ jobs:
       - name: Install Bandit
         run: pip install bandit
       - name: Run Security Scan
-        run: bandit -r src/
+        # Scan uniquement le code qui part en production
+        run: bandit -r src/prediction/ src/common/ backend/ frontend/
 
   # 4. Tests unitaires et d'intégration
   tests:
@@ -84,3 +85,14 @@ jobs:
         run: pip install pytest
       - name: Run Structure Check
         run: pytest tests/test_project_structure.py
+
+  # 6. Build des images Docker pour valider la containerisation
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [structure]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Backend and Frontend Images
+        run: |
+          docker build -t housing-backend -f backend/Dockerfile .
+          docker build -t housing-frontend -f frontend/Dockerfile .

@@ -8,11 +8,11 @@ TARGET_COLUMN = "MedHouseVal"
 
 
 def engineer_features(X: pd.DataFrame) -> pd.DataFrame:
-    """Crée de nouvelles variables à partir des données brutes."""
+    """Logique de transformation partagée entre l'entraînement et l'inférence."""
     X = X.copy()
-    # Exemple : Ratio de pièces par personne (densité d'occupation)
+    # Exemple de transformation : ratio de pièces par occupation
     if "AveRooms" in X.columns and "AveOccup" in X.columns:
-        X["RoomsPerOccupancy"] = X["AveRooms"] / (X["AveOccup"] + 0.1)
+        X["RoomsPerOccupancy"] = X["AveRooms"] / X["AveOccup"]
     return X
 
 

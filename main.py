@@ -1,6 +1,6 @@
 """Main entry point for the ML housing project."""
 
-from ml_housing.pipeline import run_pipeline
+from src.training.pipeline import run_pipeline
 
 if __name__ == "__main__":
     metrics = run_pipeline()

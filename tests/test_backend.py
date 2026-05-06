@@ -15,13 +15,11 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok"}
 
 
-@patch("backend.app.get_model")
-def test_predict_endpoint(mock_get_model):
+@patch("backend.app.make_prediction")
+def test_predict_endpoint(mock_predict):
     """Vérifie que l'endpoint predict traite correctement les données."""
-    # On définit une fausse réponse du modèle
-    mock_model = MagicMock()
-    mock_model.predict.return_value = [2.5]
-    mock_get_model.return_value = mock_model
+    # On définit une fausse réponse du service de prédiction
+    mock_predict.return_value = 2.5
 
     payload = {
         "MedInc": 3.5,
@@ -38,14 +36,5 @@ def test_predict_endpoint(mock_get_model):
 
     assert response.status_code == 200
     assert response.json() == {"prediction": 2.5}
-
-    # Vérifie que le backend convertit correctement le JSON brut en DataFrame Pandas.
-    # Cette étape permet au Pipeline de retrouver ses colonnes pour le preprocessing.
-    mock_model.predict.assert_called_once()
-    called_args, _ = mock_model.predict.call_args
-    input_data = called_args[0]
-
-    msg_df = "Le backend doit envoyer un DataFrame au pipeline"
-    assert isinstance(input_data, pd.DataFrame), msg_df
-    msg_cols = "Les colonnes doivent correspondre aux features brutes"
-    assert list(input_data.columns) == list(payload.keys()), msg_cols
+    # Vérifie que le service a été appelé avec les bonnes données
+    mock_predict.assert_called_once_with(payload)

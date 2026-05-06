@@ -5,10 +5,10 @@ from pathlib import Path
 
 import joblib
 
-from ml_housing.data import load_housing_data
-from ml_housing.evaluate import evaluate_model
-from ml_housing.features import split_features_target, split_train_test
-from ml_housing.train import train_model
+from src.training.data import load_housing_data
+from src.common.features import split_features_target, split_train_test
+from src.training.train import train_model
+from src.training.evaluate import evaluate_model
 
 
 def get_next_version(artifacts_dir: str = "artifacts") -> str:
