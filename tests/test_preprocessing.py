@@ -21,11 +21,23 @@ def test_preprocessing_pipeline_execution():
     """Vérifie que le pipeline traite les NaNs et normalise les données."""
     pipeline = get_preprocessing_pipeline()
 
-    # Données de test : feat1 a un NaN, feat2 a des échelles différentes
-    data = pd.DataFrame({"feat1": [10.0, np.nan, 30.0], "feat2": [1.0, 2.0, 3.0]})
+    # Données de test : AveRooms a un NaN, les autres sont normales
+    data = pd.DataFrame(
+        {
+            "AveRooms": [10.0, np.nan, 30.0],
+            "AveOccup": [1.0, 2.0, 3.0],
+            "MedInc": [5.0, 6.0, 7.0],
+        }
+    )
 
     transformed = pipeline.fit_transform(data)
 
-    assert transformed.shape == (3, 2)
-    assert not np.isnan(transformed).any()  # Plus de valeurs manquantes
+    # 3 colonnes d'origine + 1 créée (RoomsPerOccupancy) = 4
+    assert transformed.shape == (3, 4)
+    assert not transformed.isna().any().any()  # Plus de valeurs manquantes
+
+    # Vérifie que la nouvelle colonne est présente
+    assert "RoomsPerOccupancy" in transformed.columns
+
+    # Vérifie que les données sont centrées (moyenne ~ 0)
     assert np.allclose(transformed.mean(axis=0), 0, atol=1e-7)  # Données centrées
