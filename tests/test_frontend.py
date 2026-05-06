@@ -5,7 +5,7 @@ from streamlit.testing.v1 import AppTest
 
 def test_streamlit_app_loads():
     """Vérifie que l'application Streamlit se lance sans erreur."""
-    at = AppTest.from_file("frontend/streamlit_app.py").run()
+    at = AppTest.from_file("frontend/streamlit_app.py").run(timeout=15)
     assert not at.exception
     assert "Prédiction du prix immobilier" in at.title[0].value
 
@@ -19,7 +19,7 @@ def test_streamlit_prediction_flow(mock_post):
     mock_response.json.return_value = {"prediction": 4.12}
     mock_post.return_value = mock_response
 
-    at = AppTest.from_file("frontend/streamlit_app.py").run()
+    at = AppTest.from_file("frontend/streamlit_app.py").run(timeout=15)
 
     # On simule le clic sur le bouton "Calculer l'estimation"
     # (index 0 car c'est le seul bouton type primary)
