@@ -45,6 +45,15 @@ def health():
 
 @app.post("/predict")
 def predict(data: HousingFeatures):
+    """
+    Endpoint de prédiction qui reçoit les données brutes, les prétraite
+    via le pipeline et retourne l'estimation.
+    """  # Conversion des données Pydantic en DataFrame Pandas.
+    # Le pipeline a été entraîné avec des noms de colonnes (via set_output="pandas"),
+    # il est donc important de passer un DataFrame pour que les transformations
+    # (comme l'ingénierie de variables dans features.py) s'appliquent correctement.
     df = pd.DataFrame([data.model_dump()])
+
+    # Le pipeline (imputer -> engineer -> scaler -> regressor) s'exécute intégralement.
     prediction = model.predict(df)[0]
     return {"prediction": float(prediction)}
