@@ -14,11 +14,12 @@ from src.training.train import train_model
 def get_next_version(artifacts_dir: str = "artifacts") -> str:
     """Trouve le prochain numéro de version dans le dossier artifacts."""
     path = Path(artifacts_dir).resolve()
-    if not path.exists():
+    models_path = path / "models"
+    if not models_path.exists():
         return "v1"
 
     existing_versions = []
-    for f in path.glob("model_v*.joblib"):
+    for f in models_path.glob("model_v*.joblib"):
         try:
             # Extrait le nombre après '_v' (ex: model_v2.joblib -> 2)
             v_num = int(f.stem.split("_v")[-1])
@@ -33,7 +34,10 @@ def get_next_version(artifacts_dir: str = "artifacts") -> str:
 def run_pipeline(artifacts_dir: str = "artifacts", version: str = "") -> dict:
     """Exécute le pipeline ML complet en local."""
     artifacts_path = Path(artifacts_dir).resolve()
-    artifacts_path.mkdir(parents=True, exist_ok=True)
+    models_path = artifacts_path / "models"
+    metrics_path = artifacts_path / "metrics"
+    models_path.mkdir(parents=True, exist_ok=True)
+    metrics_path.mkdir(parents=True, exist_ok=True)
 
     df = load_housing_data()
     X, y = split_features_target(df)
@@ -43,11 +47,15 @@ def run_pipeline(artifacts_dir: str = "artifacts", version: str = "") -> dict:
     metrics = evaluate_model(model, X_test, y_test)
 
     suffix = f"_{version}" if version else ""
-    model_path = artifacts_path / f"model{suffix}.joblib"
-    metrics_path = artifacts_path / f"metrics{suffix}.json"
+    model_file = models_path / f"model{suffix}.joblib"
+    metrics_file = metrics_path / f"metrics{suffix}.json"
 
-    joblib.dump(model, model_path)
-    with open(metrics_path, "w", encoding="utf-8") as file:
+    joblib.dump(model, model_file)
+    # Sauvegarde également une copie comme modèle de production "latest"
+    latest_path = models_path / "model_latest.joblib"
+    joblib.dump(model, latest_path)
+
+    with open(metrics_file, "w", encoding="utf-8") as file:
         json.dump(metrics, file, indent=2)
 
     return metrics

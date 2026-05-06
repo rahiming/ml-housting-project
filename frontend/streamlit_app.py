@@ -1,5 +1,8 @@
+import os
 import requests
 import streamlit as st
+
+BACKEND_URL = os.getenv("BACKEND_URL", "http://127.0.0.1:8000")
 
 st.title("Prédiction du prix immobilier")
 st.write("Saisissez les caractéristiques du quartier pour obtenir une estimation.")
@@ -32,7 +35,7 @@ if st.button("Calculer l'estimation", type="primary"):
     }
     try:
         response = requests.post(
-            "http://127.0.0.1:8000/predict", json=payload, timeout=5
+            f"{BACKEND_URL}/predict", json=payload, timeout=20
         )
         response.raise_for_status()
         prediction = response.json()["prediction"]

@@ -7,6 +7,8 @@ REQUIRED_PATHS = [
     "src/training",
     "src/prediction",
     "src/common",
+    "artifacts/models",
+    "artifacts/metrics",
     "tests",
     "requirements.txt",
     "pyproject.toml",
