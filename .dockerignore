@@ -30,7 +30,7 @@ Thumbs.db
 notebooks/
 *.ipynb
 models/
-artifacts/
+# artifacts/ # Le dossier artifacts/ doit être inclus dans le contexte de build
 data/
 *.csv
 *.parquet
