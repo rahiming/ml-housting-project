@@ -3,10 +3,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 from fastapi.testclient import TestClient
 
-# On mock le chargement du modèle avant d'importer l'app
-# pour permettre aux tests de tourner même sans artefacts réels.
-with patch("backend.app.get_latest_model", return_value=MagicMock()):
-    from backend.app import app
+from backend.app import app
 
 client = TestClient(app)
 
@@ -18,11 +15,13 @@ def test_health_endpoint():
     assert response.json() == {"status": "ok"}
 
 
-@patch("backend.app.model")
-def test_predict_endpoint(mock_model):
+@patch("backend.app.get_model")
+def test_predict_endpoint(mock_get_model):
     """Vérifie que l'endpoint predict traite correctement les données."""
     # On définit une fausse réponse du modèle
+    mock_model = MagicMock()
     mock_model.predict.return_value = [2.5]
+    mock_get_model.return_value = mock_model
 
     payload = {
         "MedInc": 3.5,
@@ -46,9 +45,9 @@ def test_predict_endpoint(mock_model):
     called_args, _ = mock_model.predict.call_args
     input_data = called_args[0]
 
-    assert isinstance(
-        input_data, pd.DataFrame
-    ), "Le backend doit envoyer un DataFrame au pipeline"
-    assert list(input_data.columns) == list(
-        payload.keys()
-    ), "Les colonnes doivent correspondre aux features brutes"
+    assert isinstance(input_data, pd.DataFrame), (
+        "Le backend doit envoyer un DataFrame au pipeline"
+    )
+    assert list(input_data.columns) == list(payload.keys()), (
+        "Les colonnes doivent correspondre aux features brutes"
+    )

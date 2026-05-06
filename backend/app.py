@@ -35,7 +35,15 @@ def get_latest_model():
     return joblib.load(latest_model_path)  # nosec B301
 
 
-model = get_latest_model()
+_model = None
+
+
+def get_model():
+    """Charge le modèle au premier appel (Lazy Loading)."""
+    global _model
+    if _model is None:
+        _model = get_latest_model()
+    return _model
 
 
 @app.get("/health")
@@ -55,5 +63,5 @@ def predict(data: HousingFeatures):
     df = pd.DataFrame([data.model_dump()])
 
     # Le pipeline (imputer -> engineer -> scaler -> regressor) s'exécute intégralement.
-    prediction = model.predict(df)[0]
+    prediction = get_model().predict(df)[0]
     return {"prediction": float(prediction)}
