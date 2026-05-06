@@ -20,7 +20,6 @@ with col2:
     longitude = st.number_input("Longitude", value=-118.0, format="%.2f")
 
 if st.button("Calculer l'estimation", type="primary"):
-
     payload = {
         "MedInc": med_inc,
         "HouseAge": house_age,
@@ -31,7 +30,6 @@ if st.button("Calculer l'estimation", type="primary"):
         "Latitude": latitude,
         "Longitude": longitude,
     }
-
     try:
         response = requests.post(
             "http://127.0.0.1:8000/predict", json=payload, timeout=5
@@ -41,7 +39,6 @@ if st.button("Calculer l'estimation", type="primary"):
 
         st.success(f"### Prix estimé : {prediction:.2f} $100k")
         st.metric("Estimation", f"{prediction * 100_000:,.0f} $")
-
     except requests.exceptions.ConnectionError:
         st.error("Erreur : Impossible de contacter le serveur backend (FastAPI).")
     except Exception as e:
