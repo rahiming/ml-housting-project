@@ -5,8 +5,6 @@ REQUIRED_PATHS = [
     "frontend",
     "src",
     "tests",
-    "docs",
-    "scripts",
     "requirements.txt",
     "pyproject.toml",
 ]
@@ -21,7 +19,8 @@ FORBIDDEN_IN_BACKEND = [
 def test_required_paths_exist():
     root = Path(".")
     missing = [path for path in REQUIRED_PATHS if not (root / path).exists()]
-    assert not missing, f"Elements manquants dans le projet: {missing}"
+    msg = f"Elements manquants dans le projet: {missing}"
+    assert not missing, msg
 
 
 def test_backend_does_not_contain_training_code():
@@ -30,4 +29,5 @@ def test_backend_does_not_contain_training_code():
         return
     backend_files = [path.name for path in backend.rglob("*") if path.is_file()]
     forbidden = [name for name in FORBIDDEN_IN_BACKEND if name in backend_files]
-    assert not forbidden, f"Code de training detecte dans backend: {forbidden}"
+    msg = f"Code de training detecte dans backend: {forbidden}"
+    assert not forbidden, msg

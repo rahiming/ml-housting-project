@@ -34,5 +34,5 @@ artifacts/*.pkl
 # Metadata de build
 *.egg-info/
 
-# Metadata de build
-*.egg-info/
+# Documentation
+docs/

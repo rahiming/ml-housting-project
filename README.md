@@ -1,3 +1,5 @@
+[![CI - Python Quality Checks](https://github.com/rahiming/ml-housting-project/actions/workflows/ci.yml/badge.svg)](https://github.com/rahiming/ml-housting-project/actions/workflows/ci.yml)
+
 # ML Housing Project
 
 A machine learning project for housing price prediction.
