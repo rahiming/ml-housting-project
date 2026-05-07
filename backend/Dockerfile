@@ -19,6 +19,10 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
+# Mise a niveau des outils de packaging dans l'image finale afin d'eviter
+# d'embarquer des versions vulnerables presentes dans l'image de base.
+RUN pip install --no-cache-dir --upgrade pip wheel setuptools
+
 # On récupère uniquement les dépendances installées à l'étape précédente
 COPY --from=builder /install /usr/local
 
