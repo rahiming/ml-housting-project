@@ -36,6 +36,7 @@ data/
 *.parquet
 *.pkl
 *.joblib
+!artifacts/models/model_latest.joblib # ...sauf celui-ci
 
 # Frontend
 frontend/node_modules/
