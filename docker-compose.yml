@@ -5,8 +5,16 @@ services:
       dockerfile: backend/Dockerfile
     ports:
       - "8000:8000"
-    volumes:
-      - ./artifacts:/app/artifacts
+    depends_on:
+      - minio
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: password123
+      MINIO_BUCKET_MODELS: ml-models
+      MODEL_OBJECT_NAME: model_latest.joblib
+      LOCAL_MODEL_PATH: /app/artifacts/models/model_latest.joblib
+
 
   frontend:
     build:
@@ -18,3 +26,18 @@ services:
       - BACKEND_URL=http://backend:8000
     depends_on:
       - backend
+      
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+volumes:
+  minio_data:

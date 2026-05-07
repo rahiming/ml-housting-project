@@ -21,14 +21,14 @@ def test_predict_endpoint(mock_predict):
     mock_predict.return_value = 2.5
 
     payload = {
-        "MedInc": 3.5,
-        "HouseAge": 20.0,
-        "AveRooms": 5.0,
-        "AveBedrms": 1.0,
-        "Population": 1000.0,
-        "AveOccup": 3.0,
-        "Latitude": 34.0,
-        "Longitude": -118.0,
+        "median_income": 3.5,
+        "housing_median_age": 20.0,
+        "average_rooms": 5.0,
+        "average_bedrooms": 1.0,
+        "population": 1000.0,
+        "average_occupancy": 3.0,
+        "latitude": 34.0,
+        "longitude": -118.0,
     }
 
     response = client.post("/predict", json=payload)

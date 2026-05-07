@@ -7,17 +7,17 @@ from src.prediction.schemas import HousingFeatures
 def test_housing_features_valid_data():
     """Vérifie la validation des données d'entrée."""
     data = {
-        "MedInc": 3.0,
-        "HouseAge": 15.0,
-        "AveRooms": 5.0,
-        "AveBedrms": 1.0,
-        "Population": 800.0,
-        "AveOccup": 3.0,
-        "Latitude": 37.0,
-        "Longitude": -122.0,
+        "median_income": 3.0,
+        "housing_median_age": 15.0,
+        "average_rooms": 5.0,
+        "average_bedrooms": 1.0,
+        "population": 800.0,
+        "average_occupancy": 3.0,
+        "latitude": 37.0,
+        "longitude": -122.0,
     }
     features = HousingFeatures(**data)
-    assert features.MedInc == 3.0
+    assert features.median_income == 3.0
 
 
 def test_housing_features_invalid_data():

@@ -25,7 +25,7 @@ COPY --from=builder /install /usr/local
 COPY src/common/ ./src/common/
 COPY src/prediction/ ./src/prediction/
 COPY backend/ ./backend/
-COPY artifacts/models/model_latest.joblib ./artifacts/models/
+# Le modèle sera téléchargé depuis MinIO au démarrage de l'application, pas besoin de le copier ici.
 
 # Configuration pour que Python trouve le module 'src' correctement
 ENV PYTHONPATH=/app

@@ -8,3 +8,6 @@ joblib
 httpx
 pytest
 ruff
+boto3
+python-dotenv
+pytest-cov

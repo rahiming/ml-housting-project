@@ -73,3 +73,21 @@ Run tests with pytest:
 ```bash
 pytest
 ```
+
+## Local environment variables
+
+The repo does not version secrets. For local development, copy `.env.example` to `.env`
+and adjust the values if needed.
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Unit tests skip the MinIO startup path through `tests/conftest.py`, so they do not need
+a real MinIO service or private environment variables.

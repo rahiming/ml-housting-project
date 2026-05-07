@@ -2,11 +2,11 @@ from pydantic import BaseModel
 
 
 class HousingFeatures(BaseModel):
-    MedInc: float
-    HouseAge: float
-    AveRooms: float
-    AveBedrms: float
-    Population: float
-    AveOccup: float
-    Latitude: float
-    Longitude: float
+    median_income: float
+    housing_median_age: float
+    average_rooms: float
+    average_bedrooms: float
+    population: float
+    average_occupancy: float
+    latitude: float
+    longitude: float

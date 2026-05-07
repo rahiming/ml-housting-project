@@ -25,14 +25,14 @@ with col2:
 
 if st.button("Calculer l'estimation", type="primary"):
     payload = {
-        "MedInc": med_inc,
-        "HouseAge": house_age,
-        "AveRooms": ave_rooms,
-        "AveBedrms": ave_bedrms,
-        "Population": population,
-        "AveOccup": ave_occup,
-        "Latitude": latitude,
-        "Longitude": longitude,
+        "median_income": med_inc,
+        "housing_median_age": house_age,
+        "average_rooms": ave_rooms,
+        "average_bedrooms": ave_bedrms,
+        "population": population,
+        "average_occupancy": ave_occup,
+        "latitude": latitude,
+        "longitude": longitude,
     }
     try:
         response = requests.post(f"{BACKEND_URL}/predict", json=payload, timeout=20)
