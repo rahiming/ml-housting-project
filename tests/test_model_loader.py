@@ -1,7 +1,8 @@
 from pathlib import Path
 from unittest.mock import MagicMock, patch
+import pytest
 
-from src.prediction.model_loader import get_latest_model
+from src.prediction.model_loader import get_latest_model, get_model
 
 
 @patch("src.prediction.model_loader.Path.exists")
@@ -24,6 +25,28 @@ def test_get_latest_model_versions(mock_glob, mock_exists):
         args, _ = mock_load.call_args
         called_path = args[0]
         assert called_path.stem == "model_v2"
+
+
+@patch("src.prediction.model_loader.Path.exists")
+@patch("src.prediction.model_loader.Path.glob")
+def test_get_latest_model_not_found(mock_glob, mock_exists):
+    """Vérifie qu'une erreur est levée si aucun modèle n'est trouvé."""
+    mock_exists.return_value = False
+    mock_glob.return_value = []
+    with pytest.raises(FileNotFoundError, match="Aucun modèle trouvé"):
+        get_latest_model()
+
+
+@patch("src.prediction.model_loader.get_latest_model")
+def test_get_model_singleton(mock_get_latest):
+    """Vérifie que get_model charge le modèle une seule fois en mémoire."""
+    from src.prediction import model_loader
+    model_loader._model = None  # Reset de l'état global pour le test
+    mock_get_latest.return_value = MagicMock()
+    
+    get_model()
+    get_model()
+    assert mock_get_latest.call_count == 1
 
 
 @patch("src.prediction.model_loader.Path.exists")
