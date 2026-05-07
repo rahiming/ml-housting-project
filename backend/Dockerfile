@@ -9,9 +9,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 # Installation des dépendances dans un dossier isolé /install
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --upgrade pip wheel && \
+    pip install --no-cache-dir --prefix=/install -r requirements.txt
 
 # Étape 2 : Image finale de production (légère)
 FROM python:3.10-slim
