@@ -1,18 +1,17 @@
-from pathlib import Path
-
 import joblib
+
+from src.prediction import config
 
 
 def get_latest_model():
     """Trouve et charge le modèle avec le numéro de version le plus élevé."""
-    artifacts_path = Path("artifacts/models")
-
     # Priorité absolue au modèle de production "latest"
-    latest_prod_model = artifacts_path / "model_latest.joblib"
+    latest_prod_model = config.MODELS_PATH / config.MODEL_LATEST_NAME
+
     if latest_prod_model.exists():
         return joblib.load(latest_prod_model)
 
-    models = list(artifacts_path.glob("model_v*.joblib"))
+    models = list(config.MODELS_PATH.glob(config.MODEL_VERSION_PATTERN))
 
     if not models:
         raise FileNotFoundError("Aucun modèle trouvé dans le dossier artifacts.")
