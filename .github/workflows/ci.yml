@@ -203,7 +203,7 @@ jobs:
         if: always()
         run: docker rm -f frontend-smoke || true
       - name: Scan Backend Image With Trivy
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: housing-backend:ci
           format: table
@@ -211,7 +211,7 @@ jobs:
           ignore-unfixed: true
           severity: CRITICAL,HIGH
       - name: Scan Frontend Image With Trivy
-        uses: aquasecurity/trivy-action@0.24.0
+        uses: aquasecurity/trivy-action@v0.35.0
         with:
           image-ref: housing-frontend:ci
           format: table
