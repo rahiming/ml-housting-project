@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [ main ]
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   # 1. Vérification du Linting (Ruff)
   lint:
@@ -99,6 +103,27 @@ jobs:
       - name: Build Backend and Frontend Images
         run: |
           mkdir -p artifacts/models
-          touch artifacts/models/model_latest.joblib
+          touch artifacts/models/model_latest.joblib # Créer un fichier factice pour le build
           docker build -t housing-backend -f backend/Dockerfile .
           docker build -t housing-frontend -f frontend/Dockerfile .
+
+  # 7. Déploiement vers l'environnement de Staging (Push vers GHCR)
+  deploy-staging:
+    runs-on: ubuntu-latest
+    needs: [docker-build] # Dépend du succès du build Docker
+    if: github.ref == 'refs/heads/develop' # Ne s'exécute que sur la branche develop
+    steps:
+      - uses: actions/checkout@v4
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Tag and Push Staging Images
+        run: |
+          # Re-build les images avec le tag GHCR pour le push
+          docker build -t ghcr.io/${{ github.repository }}/backend:staging -f backend/Dockerfile .
+          docker build -t ghcr.io/${{ github.repository }}/frontend:staging -f frontend/Dockerfile .
+          docker push ghcr.io/${{ github.repository }}/backend:staging
+          docker push ghcr.io/${{ github.repository }}/frontend:staging
