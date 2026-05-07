@@ -7,7 +7,6 @@ REQUIRED_PATHS = [
     "src/training",
     "src/prediction",
     "src/common",
-    "scripts",
     "artifacts/models",
     "artifacts/metrics",
     "tests",
