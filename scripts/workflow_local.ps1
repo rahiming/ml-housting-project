@@ -43,6 +43,24 @@ function Get-CommandPath {
     throw "Commande introuvable : $FallbackCommand"
 }
 
+function Try-GetCommandPath {
+    param(
+        [string]$PreferredPath,
+        [string]$FallbackCommand
+    )
+
+    if ($PreferredPath -and (Test-Path $PreferredPath)) {
+        return $PreferredPath
+    }
+
+    $fallback = Get-Command $FallbackCommand -ErrorAction SilentlyContinue
+    if ($fallback) {
+        return $fallback.Source
+    }
+
+    return $null
+}
+
 function Invoke-External {
     param(
         [string]$FilePath,
@@ -81,11 +99,11 @@ $blackCmd = Get-CommandPath -PreferredPath $venvBlack -FallbackCommand "black"
 $pytestCmd = Get-CommandPath -PreferredPath $venvPytest -FallbackCommand "pytest"
 
 if (-not $SkipBandit) {
-    $banditCmd = Get-CommandPath -PreferredPath $venvBandit -FallbackCommand "bandit"
+    $banditCmd = Try-GetCommandPath -PreferredPath $venvBandit -FallbackCommand "bandit"
 }
 
 if (-not $SkipAudit) {
-    $pipAuditCmd = Get-CommandPath -PreferredPath $venvPipAudit -FallbackCommand "pip-audit"
+    $pipAuditCmd = Try-GetCommandPath -PreferredPath $venvPipAudit -FallbackCommand "pip-audit"
 }
 
 Write-Section "Preparation"
@@ -120,22 +138,32 @@ Write-Step "Pytest avec couverture"
 Invoke-External -FilePath $pytestCmd -Arguments @("-v", "--cov=src")
 
 if (-not $SkipBandit) {
-    Write-Step "Bandit security scan"
-    Invoke-External -FilePath $banditCmd -Arguments @(
-        "-r",
-        "src/prediction/",
-        "src/common/",
-        "backend/",
-        "frontend/"
-    )
+    if ($banditCmd) {
+        Write-Step "Bandit security scan"
+        Invoke-External -FilePath $banditCmd -Arguments @(
+            "-r",
+            "src/prediction/",
+            "src/common/",
+            "backend/",
+            "frontend/"
+        )
+    }
+    else {
+        Write-Host "Bandit non installe localement : scan saute." -ForegroundColor DarkYellow
+    }
 }
 else {
     Write-Host "Bandit ignore a la demande." -ForegroundColor DarkYellow
 }
 
 if (-not $SkipAudit) {
-    Write-Step "pip-audit dependency scan"
-    Invoke-External -FilePath $pipAuditCmd -Arguments @()
+    if ($pipAuditCmd) {
+        Write-Step "pip-audit dependency scan"
+        Invoke-External -FilePath $pipAuditCmd -Arguments @()
+    }
+    else {
+        Write-Host "pip-audit non installe localement : scan saute." -ForegroundColor DarkYellow
+    }
 }
 else {
     Write-Host "pip-audit ignore a la demande." -ForegroundColor DarkYellow
