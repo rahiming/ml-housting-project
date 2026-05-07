@@ -214,6 +214,34 @@ streamlit run frontend/streamlit_app.py
 
 ## Tests et qualite
 
+### Workflow local pre-push
+
+Le script local principal est :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\workflow_local.ps1
+```
+
+Mode correction automatique avant re-verification :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\workflow_local.ps1 -Fix
+```
+
+Mode complet avec build, smoke tests Docker et scans d'images :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\workflow_local.ps1 -Fix -WithDocker
+```
+
+Pour installer le hook `pre-push` du repo :
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts\install_git_hook.ps1
+```
+
+Une fois installe, chaque `git push` lancera automatiquement le workflow local.
+
 ### Tests
 
 ```powershell
