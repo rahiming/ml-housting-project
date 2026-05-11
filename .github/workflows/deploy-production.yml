@@ -9,28 +9,61 @@ concurrency:
   group: production-deploy
   cancel-in-progress: false
 
-# ─── Variables et secrets à configurer dans GitHub ────────────────────────────
+# ─── Ce qu'il faut configurer avant de lancer ce workflow ─────────────────────
 #
-# Repository variables  (Settings → Secrets and variables → Variables)
-#   AZURE_RESOURCE_GROUP       ex: "rg-ml-housing-prod"
-#   AZURE_LOCATION             ex: "westeurope"
-#   CONTAINERAPPS_ENVIRONMENT  ex: "cae-ml-housing-prod"
-#   BACKEND_APP_NAME           ex: "ca-ml-housing-backend"
-#   FRONTEND_APP_NAME          ex: "ca-ml-housing-frontend"
-#   MINIO_ENDPOINT             ex: "https://minio.example.com"
-#   MINIO_BUCKET_MODELS        ex: "ml-models"
-#   MODEL_OBJECT_NAME          ex: "model_latest.joblib"
-#   AB_TRAFFIC_B_PERCENT       ex: "50"
+# ── 1. Dans Render (à faire une seule fois dans le dashboard) ─────────────────
 #
-# Repository secrets  (Settings → Secrets and variables → Secrets)
-#   AZURE_CREDENTIALS   JSON d'un service principal Azure :
-#                       { "clientId": "...", "clientSecret": "...",
-#                         "subscriptionId": "...", "tenantId": "..." }
-#   GHCR_TOKEN          Personal Access Token GitHub (scope : read:packages)
-#                       Permet à Azure de puller les images depuis ghcr.io
-#   MINIO_ACCESS_KEY    Clé d'accès MinIO / Object Storage
-#   MINIO_SECRET_KEY    Clé secrète MinIO / Object Storage
+#   a) Registry Credential pour GHCR
+#      Account Settings → Registry Credentials → New Credential
+#        Server   : ghcr.io
+#        Username : <ton_github_actor>
+#        Password : Personal Access Token GitHub (scope : read:packages)
 #
+#   b) Service backend  "Web Service" → Deploy → Existing Image
+#        Image : ghcr.io/<repo>/backend:latest
+#        Registry Credential : celle créée ci-dessus
+#        Port : 8000
+#
+#   c) Service frontend  "Web Service" → Deploy → Existing Image
+#        Image : ghcr.io/<repo>/frontend:latest
+#        Registry Credential : celle créée ci-dessus
+#        Port : 8501
+#
+#   d) Variables d'environnement à définir dans chaque service Render
+#      (Service → Environment → Add Environment Variable)
+#
+#      Backend :
+#        MINIO_ENDPOINT         ex: https://s3.amazonaws.com
+#        MINIO_BUCKET_MODELS    ex: ml-models
+#        MODEL_OBJECT_NAME      ex: model_latest.joblib
+#        AB_TRAFFIC_B_PERCENT   ex: 50
+#        MINIO_ACCESS_KEY       (marquer comme "Secret")
+#        MINIO_SECRET_KEY       (marquer comme "Secret")
+#
+#      Frontend :
+#        BACKEND_URL            ex: https://ml-housing-backend.onrender.com
+#
+#   e) Clé API Render
+#      Account Settings → API Keys → Create API Key
+#      → note l'ID de chaque service : Service → Settings → Service ID  (srv-xxxx)
+#
+# ── 2. Dans GitHub (Settings → Secrets and variables) ────────────────────────
+#
+#   Variables  (onglet Variables)
+#     RENDER_BACKEND_SERVICE_ID    ex: srv-abc123def456
+#     RENDER_FRONTEND_SERVICE_ID   ex: srv-xyz789ghi012
+#
+#   Secrets  (onglet Secrets)
+#     RENDER_API_KEY               clé API générée à l'étape 1.e
+#     MINIO_ACCESS_KEY             clé d'accès MinIO / S3
+#     MINIO_SECRET_KEY             clé secrète MinIO / S3
+#
+# ─── Note MinIO ───────────────────────────────────────────────────────────────
+#   Render n'héberge pas de stockage S3. Deux options pratiques :
+#     - Cloudflare R2 (gratuit jusqu'à 10 Go, API S3-compatible, zéro egress)
+#     - Backblaze B2  (gratuit jusqu'à 10 Go, compatible S3)
+#   Dans les deux cas MINIO_ENDPOINT pointe vers leur endpoint S3 et les
+#   variables MINIO_ACCESS_KEY / MINIO_SECRET_KEY utilisent leurs credentials.
 # ──────────────────────────────────────────────────────────────────────────────
 
 jobs:
@@ -94,8 +127,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  deploy-azure:
-    name: Deploy to Azure Container Apps
+  deploy-render:
+    name: Deploy to Render
     runs-on: ubuntu-latest
     needs: publish-images
     if: github.ref == 'refs/heads/main'
@@ -103,98 +136,103 @@ jobs:
       name: production
     permissions:
       contents: read
-      packages: read
     env:
+      RENDER_API: https://api.render.com/v1
       BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend:sha-${{ github.sha }}
       FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend:sha-${{ github.sha }}
     steps:
       - name: Prepare Deployment Variables
         run: |
-          echo "--- Deployment Configuration ---"
-          echo "Resource Group       : ${{ vars.AZURE_RESOURCE_GROUP }}"
-          echo "Location             : ${{ vars.AZURE_LOCATION }}"
-          echo "Container Apps Env   : ${{ vars.CONTAINERAPPS_ENVIRONMENT }}"
-          echo "Backend App          : ${{ vars.BACKEND_APP_NAME }}"
-          echo "Frontend App         : ${{ vars.FRONTEND_APP_NAME }}"
-          echo "MinIO Endpoint       : ${{ vars.MINIO_ENDPOINT }}"
-          echo "MinIO Bucket         : ${{ vars.MINIO_BUCKET_MODELS }}"
-          echo "Model Object         : ${{ vars.MODEL_OBJECT_NAME }}"
-          echo "A/B Traffic B%       : ${{ vars.AB_TRAFFIC_B_PERCENT }}"
+          echo "--- Render Deployment Configuration ---"
+          echo "Backend service  : ${{ vars.RENDER_BACKEND_SERVICE_ID }}"
+          echo "Frontend service : ${{ vars.RENDER_FRONTEND_SERVICE_ID }}"
+          echo "Backend image    : ${{ env.BACKEND_IMAGE }}"
+          echo "Frontend image   : ${{ env.FRONTEND_IMAGE }}"
 
-      - name: Azure Login
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Configure GHCR Pull Credentials on Backend
+      - name: Trigger Backend Deploy
+        id: backend-deploy
         run: |
-          az containerapp registry set \
-            --name "${{ vars.BACKEND_APP_NAME }}" \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --server ghcr.io \
-            --username "${{ github.actor }}" \
-            --password "${{ secrets.GHCR_TOKEN }}"
+          RESPONSE=$(curl -fsS -X POST \
+            "${{ env.RENDER_API }}/services/${{ vars.RENDER_BACKEND_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"imageUrl\": \"${{ env.BACKEND_IMAGE }}\"}")
+          echo "$RESPONSE"
+          echo "id=$(echo "$RESPONSE" | jq -r '.id // empty')" >> "$GITHUB_OUTPUT"
 
-      - name: Configure GHCR Pull Credentials on Frontend
+      - name: Trigger Frontend Deploy
+        id: frontend-deploy
         run: |
-          az containerapp registry set \
-            --name "${{ vars.FRONTEND_APP_NAME }}" \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --server ghcr.io \
-            --username "${{ github.actor }}" \
-            --password "${{ secrets.GHCR_TOKEN }}"
+          RESPONSE=$(curl -fsS -X POST \
+            "${{ env.RENDER_API }}/services/${{ vars.RENDER_FRONTEND_SERVICE_ID }}/deploys" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"imageUrl\": \"${{ env.FRONTEND_IMAGE }}\"}")
+          echo "$RESPONSE"
+          echo "id=$(echo "$RESPONSE" | jq -r '.id // empty')" >> "$GITHUB_OUTPUT"
 
-      - name: Upsert MinIO Secrets in Backend Container App
+      # Les deux deploys sont declenchés simultanément ci-dessus.
+      # On attend maintenant leur stabilisation l'un après l'autre.
+      # Timeout : 30 × 20 s = 10 min par service.
+      - name: Wait For Backend Deploy
         run: |
-          az containerapp secret set \
-            --name "${{ vars.BACKEND_APP_NAME }}" \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --secrets \
-              "minio-access-key=${{ secrets.MINIO_ACCESS_KEY }}" \
-              "minio-secret-key=${{ secrets.MINIO_SECRET_KEY }}"
+          DEPLOY_ID="${{ steps.backend-deploy.outputs.id }}"
+          SERVICE_ID="${{ vars.RENDER_BACKEND_SERVICE_ID }}"
+          echo "Polling backend deploy $DEPLOY_ID ..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -fsS \
+              "${{ env.RENDER_API }}/services/$SERVICE_ID/deploys/$DEPLOY_ID" \
+              -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+              | jq -r '.status')
+            echo "  [$i/30] status=$STATUS"
+            case "$STATUS" in
+              live)                   echo "Backend deploy live."; exit 0 ;;
+              build_failed|\
+              update_failed|\
+              canceled|\
+              pre_deploy_failed|\
+              deactivated)            echo "Backend deploy failed : $STATUS"; exit 1 ;;
+            esac
+            sleep 20
+          done
+          echo "Timeout : backend deploy did not reach 'live' in 10 min."; exit 1
 
-      - name: Deploy Backend Container App
+      - name: Wait For Frontend Deploy
         run: |
-          az containerapp update \
-            --name "${{ vars.BACKEND_APP_NAME }}" \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --image "${{ env.BACKEND_IMAGE }}" \
-            --set-env-vars \
-              "MINIO_ENDPOINT=${{ vars.MINIO_ENDPOINT }}" \
-              "MINIO_BUCKET_MODELS=${{ vars.MINIO_BUCKET_MODELS }}" \
-              "MODEL_OBJECT_NAME=${{ vars.MODEL_OBJECT_NAME }}" \
-              "AB_TRAFFIC_B_PERCENT=${{ vars.AB_TRAFFIC_B_PERCENT }}" \
-              "MINIO_ACCESS_KEY=secretref:minio-access-key" \
-              "MINIO_SECRET_KEY=secretref:minio-secret-key"
+          DEPLOY_ID="${{ steps.frontend-deploy.outputs.id }}"
+          SERVICE_ID="${{ vars.RENDER_FRONTEND_SERVICE_ID }}"
+          echo "Polling frontend deploy $DEPLOY_ID ..."
+          for i in $(seq 1 30); do
+            STATUS=$(curl -fsS \
+              "${{ env.RENDER_API }}/services/$SERVICE_ID/deploys/$DEPLOY_ID" \
+              -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+              | jq -r '.status')
+            echo "  [$i/30] status=$STATUS"
+            case "$STATUS" in
+              live)                   echo "Frontend deploy live."; exit 0 ;;
+              build_failed|\
+              update_failed|\
+              canceled|\
+              pre_deploy_failed|\
+              deactivated)            echo "Frontend deploy failed : $STATUS"; exit 1 ;;
+            esac
+            sleep 20
+          done
+          echo "Timeout : frontend deploy did not reach 'live' in 10 min."; exit 1
 
-      - name: Get Backend FQDN
-        id: backend-fqdn
+      - name: Get Service URLs
+        id: urls
         run: |
-          FQDN=$(az containerapp show \
-            --name "${{ vars.BACKEND_APP_NAME }}" \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --query "properties.configuration.ingress.fqdn" \
-            --output tsv)
-          echo "fqdn=$FQDN" >> "$GITHUB_OUTPUT"
-
-      - name: Deploy Frontend Container App
-        run: |
-          az containerapp update \
-            --name "${{ vars.FRONTEND_APP_NAME }}" \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --image "${{ env.FRONTEND_IMAGE }}" \
-            --set-env-vars \
-              "BACKEND_URL=https://${{ steps.backend-fqdn.outputs.fqdn }}"
-
-      - name: Get Frontend FQDN
-        id: frontend-fqdn
-        run: |
-          FQDN=$(az containerapp show \
-            --name "${{ vars.FRONTEND_APP_NAME }}" \
-            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
-            --query "properties.configuration.ingress.fqdn" \
-            --output tsv)
-          echo "fqdn=$FQDN" >> "$GITHUB_OUTPUT"
+          BACKEND_URL=$(curl -fsS \
+            "${{ env.RENDER_API }}/services/${{ vars.RENDER_BACKEND_SERVICE_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            | jq -r '.serviceDetails.url // "see Render dashboard"')
+          FRONTEND_URL=$(curl -fsS \
+            "${{ env.RENDER_API }}/services/${{ vars.RENDER_FRONTEND_SERVICE_ID }}" \
+            -H "Authorization: Bearer ${{ secrets.RENDER_API_KEY }}" \
+            | jq -r '.serviceDetails.url // "see Render dashboard"')
+          echo "backend=$BACKEND_URL" >> "$GITHUB_OUTPUT"
+          echo "frontend=$FRONTEND_URL" >> "$GITHUB_OUTPUT"
 
       - name: Write Deployment Summary
         run: |
@@ -207,6 +245,6 @@ jobs:
             echo "| **Triggered by** | ${{ github.actor }} |"
             echo "| **Backend image** | \`${{ env.BACKEND_IMAGE }}\` |"
             echo "| **Frontend image** | \`${{ env.FRONTEND_IMAGE }}\` |"
-            echo "| **Backend URL** | https://${{ steps.backend-fqdn.outputs.fqdn }} |"
-            echo "| **Frontend URL** | https://${{ steps.frontend-fqdn.outputs.fqdn }} |"
+            echo "| **Backend URL** | ${{ steps.urls.outputs.backend }} |"
+            echo "| **Frontend URL** | ${{ steps.urls.outputs.frontend }} |"
           } >> "$GITHUB_STEP_SUMMARY"
