@@ -111,6 +111,19 @@ Write-Step "Verification des dossiers d'artefacts attendus par les tests"
 New-Item -ItemType Directory -Force artifacts\models | Out-Null
 New-Item -ItemType Directory -Force artifacts\metrics | Out-Null
 
+Write-Step "Verification de l'encodage de requirements.txt (UTF-8)"
+$reqPath = Join-Path $repoRoot "requirements.txt"
+if (Test-Path $reqPath) {
+    try {
+        $bytes = [System.IO.File]::ReadAllBytes($reqPath)
+        if ($bytes.Contains(0)) {
+            throw "Le fichier requirements.txt contient des caracteres nuls. Encodage UTF-16 probable. Merci de le convertir en UTF-8."
+        }
+    } catch {
+        throw "Erreur lors de la verification de l'encodage de requirements.txt."
+    }
+}
+
 if ($Fix) {
     Write-Section "Corrections automatiques"
     Write-Step "Ruff auto-fix"
