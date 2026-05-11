@@ -1,5 +1,7 @@
 name: Production Deploy
 
+# Déclenchement uniquement manuel depuis l'onglet Actions de GitHub.
+# À lancer depuis la branche main après validation de la CI complète.
 on:
   workflow_dispatch:
 
@@ -7,8 +9,32 @@ concurrency:
   group: production-deploy
   cancel-in-progress: false
 
+# ─── Variables et secrets à configurer dans GitHub ────────────────────────────
+#
+# Repository variables  (Settings → Secrets and variables → Variables)
+#   AZURE_RESOURCE_GROUP       ex: "rg-ml-housing-prod"
+#   AZURE_LOCATION             ex: "westeurope"
+#   CONTAINERAPPS_ENVIRONMENT  ex: "cae-ml-housing-prod"
+#   BACKEND_APP_NAME           ex: "ca-ml-housing-backend"
+#   FRONTEND_APP_NAME          ex: "ca-ml-housing-frontend"
+#   MINIO_ENDPOINT             ex: "https://minio.example.com"
+#   MINIO_BUCKET_MODELS        ex: "ml-models"
+#   MODEL_OBJECT_NAME          ex: "model_latest.joblib"
+#   AB_TRAFFIC_B_PERCENT       ex: "50"
+#
+# Repository secrets  (Settings → Secrets and variables → Secrets)
+#   AZURE_CREDENTIALS   JSON d'un service principal Azure :
+#                       { "clientId": "...", "clientSecret": "...",
+#                         "subscriptionId": "...", "tenantId": "..." }
+#   GHCR_TOKEN          Personal Access Token GitHub (scope : read:packages)
+#                       Permet à Azure de puller les images depuis ghcr.io
+#   MINIO_ACCESS_KEY    Clé d'accès MinIO / Object Storage
+#   MINIO_SECRET_KEY    Clé secrète MinIO / Object Storage
+#
+# ──────────────────────────────────────────────────────────────────────────────
+
 jobs:
-  deploy-production:
+  publish-images:
     name: Publish Production Images
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
@@ -67,7 +93,120 @@ jobs:
           labels: ${{ steps.frontend-meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Production Deployment Summary
+
+  deploy-azure:
+    name: Deploy to Azure Container Apps
+    runs-on: ubuntu-latest
+    needs: publish-images
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production
+    permissions:
+      contents: read
+      packages: read
+    env:
+      BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend:sha-${{ github.sha }}
+      FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend:sha-${{ github.sha }}
+    steps:
+      - name: Prepare Deployment Variables
         run: |
-          echo "Production-ready images published for branch main."
-          echo "Use a protected GitHub environment named 'production' to require manual approvals."
+          echo "--- Deployment Configuration ---"
+          echo "Resource Group       : ${{ vars.AZURE_RESOURCE_GROUP }}"
+          echo "Location             : ${{ vars.AZURE_LOCATION }}"
+          echo "Container Apps Env   : ${{ vars.CONTAINERAPPS_ENVIRONMENT }}"
+          echo "Backend App          : ${{ vars.BACKEND_APP_NAME }}"
+          echo "Frontend App         : ${{ vars.FRONTEND_APP_NAME }}"
+          echo "MinIO Endpoint       : ${{ vars.MINIO_ENDPOINT }}"
+          echo "MinIO Bucket         : ${{ vars.MINIO_BUCKET_MODELS }}"
+          echo "Model Object         : ${{ vars.MODEL_OBJECT_NAME }}"
+          echo "A/B Traffic B%       : ${{ vars.AB_TRAFFIC_B_PERCENT }}"
+
+      - name: Azure Login
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Configure GHCR Pull Credentials on Backend
+        run: |
+          az containerapp registry set \
+            --name "${{ vars.BACKEND_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --server ghcr.io \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GHCR_TOKEN }}"
+
+      - name: Configure GHCR Pull Credentials on Frontend
+        run: |
+          az containerapp registry set \
+            --name "${{ vars.FRONTEND_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --server ghcr.io \
+            --username "${{ github.actor }}" \
+            --password "${{ secrets.GHCR_TOKEN }}"
+
+      - name: Upsert MinIO Secrets in Backend Container App
+        run: |
+          az containerapp secret set \
+            --name "${{ vars.BACKEND_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --secrets \
+              "minio-access-key=${{ secrets.MINIO_ACCESS_KEY }}" \
+              "minio-secret-key=${{ secrets.MINIO_SECRET_KEY }}"
+
+      - name: Deploy Backend Container App
+        run: |
+          az containerapp update \
+            --name "${{ vars.BACKEND_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ env.BACKEND_IMAGE }}" \
+            --set-env-vars \
+              "MINIO_ENDPOINT=${{ vars.MINIO_ENDPOINT }}" \
+              "MINIO_BUCKET_MODELS=${{ vars.MINIO_BUCKET_MODELS }}" \
+              "MODEL_OBJECT_NAME=${{ vars.MODEL_OBJECT_NAME }}" \
+              "AB_TRAFFIC_B_PERCENT=${{ vars.AB_TRAFFIC_B_PERCENT }}" \
+              "MINIO_ACCESS_KEY=secretref:minio-access-key" \
+              "MINIO_SECRET_KEY=secretref:minio-secret-key"
+
+      - name: Get Backend FQDN
+        id: backend-fqdn
+        run: |
+          FQDN=$(az containerapp show \
+            --name "${{ vars.BACKEND_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "fqdn=$FQDN" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy Frontend Container App
+        run: |
+          az containerapp update \
+            --name "${{ vars.FRONTEND_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --image "${{ env.FRONTEND_IMAGE }}" \
+            --set-env-vars \
+              "BACKEND_URL=https://${{ steps.backend-fqdn.outputs.fqdn }}"
+
+      - name: Get Frontend FQDN
+        id: frontend-fqdn
+        run: |
+          FQDN=$(az containerapp show \
+            --name "${{ vars.FRONTEND_APP_NAME }}" \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --query "properties.configuration.ingress.fqdn" \
+            --output tsv)
+          echo "fqdn=$FQDN" >> "$GITHUB_OUTPUT"
+
+      - name: Write Deployment Summary
+        run: |
+          {
+            echo "## Production Deployment"
+            echo ""
+            echo "| | Detail |"
+            echo "| --- | --- |"
+            echo "| **Commit** | \`${{ github.sha }}\` |"
+            echo "| **Triggered by** | ${{ github.actor }} |"
+            echo "| **Backend image** | \`${{ env.BACKEND_IMAGE }}\` |"
+            echo "| **Frontend image** | \`${{ env.FRONTEND_IMAGE }}\` |"
+            echo "| **Backend URL** | https://${{ steps.backend-fqdn.outputs.fqdn }} |"
+            echo "| **Frontend URL** | https://${{ steps.frontend-fqdn.outputs.fqdn }} |"
+          } >> "$GITHUB_STEP_SUMMARY"
