@@ -1,12 +1,17 @@
 # Environnements Python
 .venv/
 venv/
+logs/
 mon_env/
 __pycache__/
 *.pyc
 *.pyo
 .pytest_cache/
 .ruff_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 # Jupyter Notebooks
 .ipynb_checkpoints/
@@ -16,7 +21,8 @@ __pycache__/
 # Données et modèles locaux
 data/
 models/
-artifacts/
+artifacts/*
+!.gitkeep
 artifacts/*.joblib
 artifacts/*.pkl
 *.pkl
@@ -36,3 +42,6 @@ artifacts/*.pkl
 
 # Documentation
 docs/
+
+# Scripts locaux non versionnés
+scripts/generate_deploy_doc.py

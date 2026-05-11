@@ -3,7 +3,7 @@
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.pipeline import Pipeline
 
-from ml_housing.preprocessing import get_preprocessing_pipeline
+from src.training.preprocessing import get_preprocessing_pipeline
 
 
 def train_model(X_train, y_train) -> Pipeline:

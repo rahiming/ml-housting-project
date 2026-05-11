@@ -1,0 +1,10 @@
+{
+  "name": "ml-housing-frontend",
+  "version": "0.1.0",
+  "description": "Streamlit interface for housing price prediction",
+  "private": true,
+  "scripts": {
+    "dev": "streamlit run streamlit_app.py",
+    "docker:build": "docker build -t housing-frontend -f Dockerfile .."
+  }
+}

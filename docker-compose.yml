@@ -1,0 +1,72 @@
+services:
+  backend:
+    image: ml-housing-project-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      minio:
+        condition: service_started
+      model-seeder:
+        condition: service_completed_successfully
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: password123
+      MINIO_BUCKET_MODELS: ml-models
+      MODEL_OBJECT_NAME: model_latest.joblib
+      MODEL_A_OBJECT_NAME: model_v1.joblib
+      MODEL_B_OBJECT_NAME: model_v2.joblib
+      LOCAL_MODEL_PATH: /app/artifacts/models/model_latest.joblib
+      REQUIRE_AB_MODELS: "1"
+
+  model-seeder:
+    image: ml-housing-project-backend
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    depends_on:
+      - minio
+    environment:
+      MINIO_ENDPOINT: http://minio:9000
+      MINIO_ACCESS_KEY: admin
+      MINIO_SECRET_KEY: password123
+      MINIO_BUCKET_MODELS: ml-models
+      MODEL_OBJECT_NAME: model_latest.joblib
+      MODEL_A_OBJECT_NAME: model_v1.joblib
+      MODEL_B_OBJECT_NAME: model_v2.joblib
+    volumes:
+      - ./artifacts:/app/artifacts:ro
+      - ./scripts:/app/scripts:ro
+      - ./.env:/app/.env:ro
+    command: ["python", "scripts/upload_model_to_minio.py"]
+
+  frontend:
+    image: ml-housing-project-frontend
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8000
+    depends_on:
+      backend:
+        condition: service_started
+      
+  minio:
+    image: minio/minio
+    container_name: minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: password123
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+volumes:
+  minio_data:
