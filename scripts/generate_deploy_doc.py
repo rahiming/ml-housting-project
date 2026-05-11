@@ -523,9 +523,9 @@ p.add_run(
     "→ « Account Settings »."
 ).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run(
-    "Dans le menu de gauche, cliquer sur « Registry Credentials »."
-).font.size = Pt(10)
+p.add_run("Dans le menu de gauche, cliquer sur « Registry Credentials ».").font.size = (
+    Pt(10)
+)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « New Credential ».").font.size = Pt(10)
 
@@ -552,9 +552,9 @@ doc.add_paragraph(
     "les déploiements et vérifier leur statut."
 )
 p = doc.add_paragraph(style="List Number")
-p.add_run(
-    "Dans Render, aller dans « Account Settings » → « API Keys »."
-).font.size = Pt(10)
+p.add_run("Dans Render, aller dans « Account Settings » → « API Keys ».").font.size = (
+    Pt(10)
+)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Create API Key ».").font.size = Pt(10)
 r = p.add_run("")
@@ -564,9 +564,9 @@ r.font.size = Pt(10)
 r.bold = True
 p.add_run("github-actions-deploy").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run(
-    "Cliquer sur « Create API Key » et copier la clé (rnd_xxxx…)."
-).font.size = Pt(10)
+p.add_run("Cliquer sur « Create API Key » et copier la clé (rnd_xxxx…).").font.size = (
+    Pt(10)
+)
 
 add_warning_box(doc, "Cette clé n'est visible qu'une seule fois. La copier maintenant.")
 
@@ -916,9 +916,9 @@ p.add_run("Dans le menu de gauche, cliquer sur « Production Deploy ».").font.s
     10
 )
 p = doc.add_paragraph(style="List Number")
-p.add_run(
-    "Cliquer sur « Run workflow » → s'assurer que la branche est "
-).font.size = Pt(10)
+p.add_run("Cliquer sur « Run workflow » → s'assurer que la branche est ").font.size = (
+    Pt(10)
+)
 p.add_run("main").font.name = "Courier New"
 p.runs[-1].font.size = Pt(10)
 p.add_run(".").font.size = Pt(10)
@@ -1250,9 +1250,11 @@ for i, step_text in enumerate(all_steps, 1):
     shading = OxmlElement("w:shd")
     shading.set(
         qn("w:fill"),
-        "1A56DB"
-        if i <= 4
-        else ("059669" if i <= 7 else ("7C3AED" if i <= 12 else "DC2626")),
+        (
+            "1A56DB"
+            if i <= 4
+            else ("059669" if i <= 7 else ("7C3AED" if i <= 12 else "DC2626"))
+        ),
     )
     shading.set(qn("w:val"), "clear")
     cells[0]._tc.get_or_add_tcPr().append(shading)
