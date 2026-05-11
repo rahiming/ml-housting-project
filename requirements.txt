@@ -49,8 +49,6 @@ MarkupSafe==3.0.3
 matplotlib==3.10.9
 matplotlib-inline==0.2.1
 mdurl==0.1.2
--e git+https://github.com/rahiming/ml-housting-project.git@50d98fe6a9efaf72378f51d02bc899e253bb2272#egg=ml_housing
--e git+https://github.com/rahiming/ml-housting-project.git@50d98fe6a9efaf72378f51d02bc899e253bb2272#egg=ml_project
 mypy_extensions==1.1.0
 narwhals==2.20.0
 nest-asyncio==1.6.0
