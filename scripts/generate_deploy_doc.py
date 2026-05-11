@@ -1,5 +1,6 @@
 """Génère le guide de déploiement Word pour le projet ML Housing sur Render.com."""
 
+# fmt: off  — script de génération documentaire, pas de code production
 import datetime
 import os
 
