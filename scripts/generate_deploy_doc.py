@@ -13,6 +13,7 @@ doc = Document()
 
 # ── Styles ────────────────────────────────────────────────────────────────────
 
+
 def set_font(run, bold=False, italic=False, size=None, color=None, mono=False):
     run.bold = bold
     run.italic = italic
@@ -23,10 +24,12 @@ def set_font(run, bold=False, italic=False, size=None, color=None, mono=False):
     if mono:
         run.font.name = "Courier New"
 
+
 def add_heading(doc, text, level):
     h = doc.add_heading(text, level=level)
     h.runs[0].font.color.rgb = RGBColor(0x1A, 0x56, 0xDB)
     return h
+
 
 def add_info_box(doc, text, color=(0xEF, 0xF6, 0xFF), border_color=(0x3B, 0x82, 0xF6)):
     """Encadré bleu informatif."""
@@ -43,6 +46,7 @@ def add_info_box(doc, text, color=(0xEF, 0xF6, 0xFF), border_color=(0x3B, 0x82, 
     run.font.color.rgb = RGBColor(0x1E, 0x40, 0xAF)
     return p
 
+
 def add_warning_box(doc, text):
     """Encadré orange avertissement."""
     p = doc.add_paragraph()
@@ -56,6 +60,7 @@ def add_warning_box(doc, text):
     run.font.color.rgb = RGBColor(0xC2, 0x41, 0x0C)
     return p
 
+
 def add_success_box(doc, text):
     """Encadré vert succès."""
     p = doc.add_paragraph()
@@ -68,6 +73,7 @@ def add_success_box(doc, text):
     run.font.size = Pt(10)
     run.font.color.rgb = RGBColor(0x16, 0x6D, 0x3B)
     return p
+
 
 def add_code(doc, code, title=None):
     """Bloc de code monospace avec fond gris."""
@@ -91,6 +97,7 @@ def add_code(doc, code, title=None):
     run.font.color.rgb = RGBColor(0x1F, 0x29, 0x37)
     return p
 
+
 def add_step(doc, number, title, description=None):
     """Étape numérotée mise en valeur."""
     p = doc.add_paragraph()
@@ -103,8 +110,11 @@ def add_step(doc, number, title, description=None):
     r2.bold = True
     r2.font.size = Pt(11)
     if description:
-        doc.add_paragraph(description).runs[0].font.size = Pt(10) if doc.paragraphs[-1].runs else None
+        doc.add_paragraph(description).runs[0].font.size = (
+            Pt(10) if doc.paragraphs[-1].runs else None
+        )
     return p
+
 
 def add_table_kv(doc, rows, col1="Variable", col2="Valeur / Exemple"):
     """Tableau à deux colonnes clé/valeur."""
@@ -138,15 +148,16 @@ def add_table_kv(doc, rows, col1="Variable", col2="Valeur / Exemple"):
                     run.font.size = Pt(9)
     return table
 
+
 # ── Page de titre ─────────────────────────────────────────────────────────────
 
 section = doc.sections[0]
-section.page_width  = Inches(8.27)
+section.page_width = Inches(8.27)
 section.page_height = Inches(11.69)
-section.top_margin    = Inches(1)
+section.top_margin = Inches(1)
 section.bottom_margin = Inches(1)
-section.left_margin   = Inches(1.18)
-section.right_margin  = Inches(1.18)
+section.left_margin = Inches(1.18)
+section.right_margin = Inches(1.18)
 
 title_para = doc.add_paragraph()
 title_para.alignment = WD_ALIGN_PARAGRAPH.CENTER
@@ -222,7 +233,9 @@ add_heading(doc, "1.2  Architecture de l'application déployée", 2)
 doc.add_paragraph(
     "L'application se compose de trois éléments qui communiquent entre eux :"
 )
-add_code(doc, """\
+add_code(
+    doc,
+    """\
 ┌─────────────────────────────────────────────────────────────────────┐
 │                        INTERNET (HTTPS)                             │
 │                                                                     │
@@ -243,13 +256,15 @@ add_code(doc, """\
 │                                  │  model_v2.joblib        │        │
 │                                  └─────────────────────────┘        │
 └─────────────────────────────────────────────────────────────────────┘\
-""")
+""",
+)
 
-add_info_box(doc,
+add_info_box(
+    doc,
     "Render est une plateforme cloud qui héberge des conteneurs Docker directement "
     "depuis un registre d'images (ici GHCR — GitHub Container Registry). "
     "Cloudflare R2 remplace MinIO comme stockage objet S3-compatible, "
-    "avec un tier gratuit généreux (10 Go / mois, 0 frais de sortie)."
+    "avec un tier gratuit généreux (10 Go / mois, 0 frais de sortie).",
 )
 
 doc.add_page_break()
@@ -278,9 +293,10 @@ p.add_run("Cliquer sur « Create Account ».").font.size = Pt(10)
 p = doc.add_paragraph(style="List Bullet")
 p.add_run("Confirmer l'e-mail via le lien reçu.").font.size = Pt(10)
 
-add_warning_box(doc,
+add_warning_box(
+    doc,
     "Si vous avez déjà un compte Cloudflare (même personnel), vous pouvez l'utiliser. "
-    "R2 est disponible sur tous les comptes y compris le plan Free."
+    "R2 est disponible sur tous les comptes y compris le plan Free.",
 )
 
 add_heading(doc, "2.2  Activation de Cloudflare R2", 2)
@@ -290,10 +306,14 @@ doc.add_paragraph(
     "Une fois connecté au dashboard Cloudflare (https://dash.cloudflare.com) :"
 )
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans le menu de gauche, cliquer sur « R2 Object Storage ».").font.size = Pt(10)
+p.add_run("Dans le menu de gauche, cliquer sur « R2 Object Storage ».").font.size = Pt(
+    10
+)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Si c'est la première utilisation, cliquer sur « Purchase R2 Plan » "
-          "→ choisir le plan Free (pas de carte requise pour le tier gratuit).").font.size = Pt(10)
+p.add_run(
+    "Si c'est la première utilisation, cliquer sur « Purchase R2 Plan » "
+    "→ choisir le plan Free (pas de carte requise pour le tier gratuit)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Attendre que le service soit activé (quelques secondes).").font.size = Pt(10)
 
@@ -310,11 +330,15 @@ r2 = p.add_run("ml-models")
 r2.font.name = "Courier New"
 r2.font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Location : choisir « Automatic » (Cloudflare sélectionne la région optimale).").font.size = Pt(10)
+p.add_run(
+    "Location : choisir « Automatic » (Cloudflare sélectionne la région optimale)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Create bucket ».").font.size = Pt(10)
 
-add_success_box(doc, "Le bucket ml-models est créé. Vous êtes redirigé vers sa page de gestion.")
+add_success_box(
+    doc, "Le bucket ml-models est créé. Vous êtes redirigé vers sa page de gestion."
+)
 
 add_heading(doc, "2.4  Récupération de l'Account ID Cloudflare", 2)
 
@@ -324,25 +348,32 @@ doc.add_paragraph(
     "https://<ACCOUNT_ID>.r2.cloudflarestorage.com"
 )
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans le menu de gauche, cliquer sur le nom de votre compte "
-          "(en haut à gauche) ou aller dans « Overview ».").font.size = Pt(10)
+p.add_run(
+    "Dans le menu de gauche, cliquer sur le nom de votre compte "
+    "(en haut à gauche) ou aller dans « Overview »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("L'Account ID est affiché dans le panneau de droite (section « API »). "
-          "Il ressemble à : a1b2c3d4e5f6789012345678901234ab").font.size = Pt(10)
+p.add_run(
+    "L'Account ID est affiché dans le panneau de droite (section « API »). "
+    "Il ressemble à : a1b2c3d4e5f6789012345678901234ab"
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Copier et conserver cet ID.").font.size = Pt(10)
 
-add_code(doc,
+add_code(
+    doc,
     "MINIO_ENDPOINT = https://<ACCOUNT_ID>.r2.cloudflarestorage.com\n"
     "Exemple réel  : https://a1b2c3d4e5f6789012345678901234ab.r2.cloudflarestorage.com",
-    title="Construction de la variable MINIO_ENDPOINT"
+    title="Construction de la variable MINIO_ENDPOINT",
 )
 
 add_heading(doc, "2.5  Création des tokens d'accès R2", 2)
 
 add_step(doc, 5, "Générer les clés d'accès API pour le bucket")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans R2, cliquer sur « Manage R2 API Tokens » (lien en haut à droite de la page R2).").font.size = Pt(10)
+p.add_run(
+    "Dans R2, cliquer sur « Manage R2 API Tokens » (lien en haut à droite de la page R2)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Create API token ».").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
@@ -353,19 +384,27 @@ p.add_run("ml-housing-backend-rw").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Permissions : sélectionner « Object Read & Write ».").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Specify bucket (optionnel mais recommandé) : sélectionner « ml-models ».").font.size = Pt(10)
+p.add_run(
+    "Specify bucket (optionnel mais recommandé) : sélectionner « ml-models »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Create API Token ».").font.size = Pt(10)
 
-add_warning_box(doc,
+add_warning_box(
+    doc,
     "Cloudflare n'affiche la Secret Access Key qu'UNE SEULE FOIS. "
-    "Copier immédiatement les deux valeurs suivantes et les conserver en sécurité :"
+    "Copier immédiatement les deux valeurs suivantes et les conserver en sécurité :",
 )
 
-add_table_kv(doc, [
-    ("Access Key ID",     "Ressemble à : a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"),
-    ("Secret Access Key", "Ressemble à : Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0Kk1Ll2Mm3"),
-], col1="Clé", col2="Format")
+add_table_kv(
+    doc,
+    [
+        ("Access Key ID", "Ressemble à : a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6"),
+        ("Secret Access Key", "Ressemble à : Aa1Bb2Cc3Dd4Ee5Ff6Gg7Hh8Ii9Jj0Kk1Ll2Mm3"),
+    ],
+    col1="Clé",
+    col2="Format",
+)
 
 add_heading(doc, "2.6  Upload des fichiers de modèles", 2)
 
@@ -374,10 +413,11 @@ doc.add_paragraph(
     "Trois fichiers de modèles doivent être uploadés dans le bucket ml-models. "
     "Ils se trouvent localement dans le dossier artifacts/models/ de votre projet."
 )
-add_warning_box(doc,
+add_warning_box(
+    doc,
     "Si les fichiers model_v1.joblib et model_v2.joblib n'existent pas encore, "
     "exécuter d'abord le script scripts/upload_model_to_minio.py en local "
-    "avec un MinIO local, ou entraîner et exporter les modèles A/B manuellement."
+    "avec un MinIO local, ou entraîner et exporter les modèles A/B manuellement.",
 )
 
 doc.add_paragraph("Option A — Via l'interface web Cloudflare R2 :")
@@ -396,7 +436,8 @@ p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Upload » pour confirmer.").font.size = Pt(10)
 
 doc.add_paragraph("Option B — Via rclone (ligne de commande) :")
-add_code(doc,
+add_code(
+    doc,
     "# Installation de rclone\n"
     "pip install rclone  # ou télécharger depuis rclone.org\n\n"
     "# Configuration rclone pour Cloudflare R2\n"
@@ -407,12 +448,13 @@ add_code(doc,
     "  endpoint https://<ACCOUNT_ID>.r2.cloudflarestorage.com\n\n"
     "# Upload des modèles\n"
     "rclone copy artifacts/models/ r2:ml-models/",
-    title="Upload via rclone"
+    title="Upload via rclone",
 )
 
-add_success_box(doc,
+add_success_box(
+    doc,
     "Vérification : dans le dashboard R2, le bucket ml-models doit contenir "
-    "model_latest.joblib, model_v1.joblib et model_v2.joblib."
+    "model_latest.joblib, model_v1.joblib et model_v2.joblib.",
 )
 
 doc.add_page_break()
@@ -427,10 +469,14 @@ add_heading(doc, "3.1  Création du compte Render", 2)
 
 add_step(doc, 7, "Créer un compte sur render.com")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Naviguer vers https://render.com et cliquer sur « Get Started for Free ».").font.size = Pt(10)
+p.add_run(
+    "Naviguer vers https://render.com et cliquer sur « Get Started for Free »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Choisir « Sign up with GitHub » pour lier directement le compte GitHub "
-          "(recommandé : simplifie l'authentification).").font.size = Pt(10)
+p.add_run(
+    "Choisir « Sign up with GitHub » pour lier directement le compte GitHub "
+    "(recommandé : simplifie l'authentification)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Autoriser Render à accéder à votre compte GitHub.").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
@@ -445,7 +491,9 @@ doc.add_paragraph(
 )
 
 add_step(doc, 8, "Créer un Personal Access Token GitHub pour Render")
-doc.add_paragraph("Ce token permettra à Render de télécharger vos images Docker depuis GHCR.")
+doc.add_paragraph(
+    "Ce token permettra à Render de télécharger vos images Docker depuis GHCR."
+)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Aller sur https://github.com/settings/tokens/new").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
@@ -454,31 +502,44 @@ r.font.size = Pt(10)
 r.bold = True
 p.add_run("render-ghcr-pull").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Expiration : 90 days (ou No expiration pour un projet de cours).").font.size = Pt(10)
+p.add_run(
+    "Expiration : 90 days (ou No expiration pour un projet de cours)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Scopes : cocher uniquement ").font.size = Pt(10)
 p.add_run("read:packages").font.name = "Courier New"
 p.runs[-1].font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Cliquer sur « Generate token » et copier le token (ghp_xxxx…).").font.size = Pt(10)
+p.add_run(
+    "Cliquer sur « Generate token » et copier le token (ghp_xxxx…)."
+).font.size = Pt(10)
 
 add_warning_box(doc, "Ce token n'est visible qu'une seule fois. Le copier maintenant.")
 
 add_step(doc, 9, "Enregistrer le credential dans Render")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans Render, cliquer sur l'icône de profil en haut à droite "
-          "→ « Account Settings ».").font.size = Pt(10)
+p.add_run(
+    "Dans Render, cliquer sur l'icône de profil en haut à droite "
+    "→ « Account Settings »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans le menu de gauche, cliquer sur « Registry Credentials ».").font.size = Pt(10)
+p.add_run(
+    "Dans le menu de gauche, cliquer sur « Registry Credentials »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « New Credential ».").font.size = Pt(10)
 
-add_table_kv(doc, [
-    ("Name",     "ghcr-ml-housing"),
-    ("Registry", "GitHub Container Registry"),
-    ("Username", "rahiming  (votre GitHub username)"),
-    ("Password", "ghp_xxxx… (le token créé à l'étape 8)"),
-], col1="Champ", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        ("Name", "ghcr-ml-housing"),
+        ("Registry", "GitHub Container Registry"),
+        ("Username", "rahiming  (votre GitHub username)"),
+        ("Password", "ghp_xxxx… (le token créé à l'étape 8)"),
+    ],
+    col1="Champ",
+    col2="Valeur",
+)
 
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Save Credential ».").font.size = Pt(10)
@@ -491,7 +552,9 @@ doc.add_paragraph(
     "les déploiements et vérifier leur statut."
 )
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans Render, aller dans « Account Settings » → « API Keys ».").font.size = Pt(10)
+p.add_run(
+    "Dans Render, aller dans « Account Settings » → « API Keys »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Create API Key ».").font.size = Pt(10)
 r = p.add_run("")
@@ -501,7 +564,9 @@ r.font.size = Pt(10)
 r.bold = True
 p.add_run("github-actions-deploy").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Cliquer sur « Create API Key » et copier la clé (rnd_xxxx…).").font.size = Pt(10)
+p.add_run(
+    "Cliquer sur « Create API Key » et copier la clé (rnd_xxxx…)."
+).font.size = Pt(10)
 
 add_warning_box(doc, "Cette clé n'est visible qu'une seule fois. La copier maintenant.")
 
@@ -517,38 +582,54 @@ add_heading(doc, "4.1  Création du service FastAPI Backend", 2)
 
 add_step(doc, 11, "Créer un nouveau Web Service dans Render")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans le dashboard Render, cliquer sur le bouton « + New » (en haut à droite).").font.size = Pt(10)
+p.add_run(
+    "Dans le dashboard Render, cliquer sur le bouton « + New » (en haut à droite)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Sélectionner « Web Service ».").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Sur la page suivante, choisir « Deploy an existing image ».").font.size = Pt(10)
+p.add_run("Sur la page suivante, choisir « Deploy an existing image ».").font.size = Pt(
+    10
+)
 
 add_step(doc, 12, "Configurer l'image Docker du backend")
 
-add_table_kv(doc, [
-    ("Image URL",
-     "ghcr.io/rahiming/ml-housting-project/backend:latest"),
-    ("Registry Credential",
-     "ghcr-ml-housing  (créé à l'étape 9)"),
-], col1="Champ", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        ("Image URL", "ghcr.io/rahiming/ml-housting-project/backend:latest"),
+        ("Registry Credential", "ghcr-ml-housing  (créé à l'étape 9)"),
+    ],
+    col1="Champ",
+    col2="Valeur",
+)
 
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Next ».").font.size = Pt(10)
 
 add_step(doc, 13, "Renseigner les paramètres du service backend")
 
-add_table_kv(doc, [
-    ("Name",     "ml-housing-backend"),
-    ("Region",   "Frankfurt (EU Central) — ou la région la plus proche"),
-    ("Instance Type", "Free (512 MB RAM, 0.1 CPU) pour un projet de cours\n"
-                      "Starter (512 MB RAM, 0.5 CPU) pour de meilleures performances"),
-    ("Port",     "8000"),
-], col1="Champ", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        ("Name", "ml-housing-backend"),
+        ("Region", "Frankfurt (EU Central) — ou la région la plus proche"),
+        (
+            "Instance Type",
+            "Free (512 MB RAM, 0.1 CPU) pour un projet de cours\n"
+            "Starter (512 MB RAM, 0.5 CPU) pour de meilleures performances",
+        ),
+        ("Port", "8000"),
+    ],
+    col1="Champ",
+    col2="Valeur",
+)
 
-add_warning_box(doc,
+add_warning_box(
+    doc,
     "Le plan Free de Render met les services en veille après 15 minutes d'inactivité. "
     "Le premier appel après une période d'inactivité peut prendre 30 à 60 secondes "
-    "(cold start). Pour un projet de démonstration c'est acceptable."
+    "(cold start). Pour un projet de démonstration c'est acceptable.",
 )
 
 add_step(doc, 14, "Ajouter les variables d'environnement du backend")
@@ -558,52 +639,76 @@ doc.add_paragraph(
     "Les variables marquées « Secret » seront masquées dans les logs Render."
 )
 
-add_table_kv(doc, [
-    ("MINIO_ENDPOINT",
-     "https://<ACCOUNT_ID>.r2.cloudflarestorage.com\n"
-     "Remplacer <ACCOUNT_ID> par votre Account ID Cloudflare"),
-    ("MINIO_BUCKET_MODELS",  "ml-models"),
-    ("MODEL_OBJECT_NAME",    "model_latest.joblib"),
-    ("MODEL_A_OBJECT_NAME",  "model_v1.joblib"),
-    ("MODEL_B_OBJECT_NAME",  "model_v2.joblib"),
-    ("AB_TRAFFIC_B_PERCENT", "50"),
-    ("MINIO_ACCESS_KEY",     "← coller l'Access Key ID R2  (marquer comme Secret)"),
-    ("MINIO_SECRET_KEY",     "← coller la Secret Access Key R2  (marquer comme Secret)"),
-], col1="Variable", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        (
+            "MINIO_ENDPOINT",
+            "https://<ACCOUNT_ID>.r2.cloudflarestorage.com\n"
+            "Remplacer <ACCOUNT_ID> par votre Account ID Cloudflare",
+        ),
+        ("MINIO_BUCKET_MODELS", "ml-models"),
+        ("MODEL_OBJECT_NAME", "model_latest.joblib"),
+        ("MODEL_A_OBJECT_NAME", "model_v1.joblib"),
+        ("MODEL_B_OBJECT_NAME", "model_v2.joblib"),
+        ("AB_TRAFFIC_B_PERCENT", "50"),
+        ("MINIO_ACCESS_KEY", "← coller l'Access Key ID R2  (marquer comme Secret)"),
+        (
+            "MINIO_SECRET_KEY",
+            "← coller la Secret Access Key R2  (marquer comme Secret)",
+        ),
+    ],
+    col1="Variable",
+    col2="Valeur",
+)
 
-add_info_box(doc,
+add_info_box(
+    doc,
     "Pour marquer une variable comme Secret dans Render : cliquer sur l'icône "
     "en forme d'œil à côté du champ de valeur. La valeur sera chiffrée et "
-    "masquée dans les logs et l'interface."
+    "masquée dans les logs et l'interface.",
 )
 
 add_step(doc, 15, "Déployer le service backend")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Cliquer sur « Deploy Web Service » (bouton en bas de page).").font.size = Pt(10)
+p.add_run("Cliquer sur « Deploy Web Service » (bouton en bas de page).").font.size = Pt(
+    10
+)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Render va télécharger l'image Docker depuis GHCR et démarrer le conteneur. "
-          "Cette opération prend généralement 2 à 5 minutes.").font.size = Pt(10)
+p.add_run(
+    "Render va télécharger l'image Docker depuis GHCR et démarrer le conteneur. "
+    "Cette opération prend généralement 2 à 5 minutes."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Surveiller les logs dans l'onglet « Logs » du service.").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Attendre le message : Application prete a accepter des requetes.").font.size = Pt(10)
+p.add_run(
+    "Attendre le message : Application prete a accepter des requetes."
+).font.size = Pt(10)
 
 add_heading(doc, "4.2  Récupération du Service ID et de l'URL Backend", 2)
 
 add_step(doc, 16, "Noter le Service ID et l'URL du backend")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans le service backend, aller dans l'onglet « Settings ».").font.size = Pt(10)
+p.add_run("Dans le service backend, aller dans l'onglet « Settings ».").font.size = Pt(
+    10
+)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Copier la valeur du champ « Service ID » (format : srv-xxxxxxxxxxxxxx). "
-          "Cette valeur sera utilisée plus tard dans GitHub.").font.size = Pt(10)
+p.add_run(
+    "Copier la valeur du champ « Service ID » (format : srv-xxxxxxxxxxxxxx). "
+    "Cette valeur sera utilisée plus tard dans GitHub."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("En haut de la page du service, noter l'URL publique du backend "
-          "(format : https://ml-housing-backend.onrender.com).").font.size = Pt(10)
+p.add_run(
+    "En haut de la page du service, noter l'URL publique du backend "
+    "(format : https://ml-housing-backend.onrender.com)."
+).font.size = Pt(10)
 
-add_code(doc,
+add_code(
+    doc,
     "Service ID  : srv-xxxxxxxxxxxxxx   ← à copier dans GitHub (variable)\n"
     "URL backend : https://ml-housing-backend.onrender.com  ← à utiliser dans le frontend",
-    title="Valeurs à conserver"
+    title="Valeurs à conserver",
 )
 
 doc.add_page_break()
@@ -618,24 +723,35 @@ add_heading(doc, "5.1  Création du service Streamlit Frontend", 2)
 
 add_step(doc, 17, "Créer un second Web Service dans Render")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Cliquer sur « + New » → « Web Service » → « Deploy an existing image ».").font.size = Pt(10)
+p.add_run(
+    "Cliquer sur « + New » → « Web Service » → « Deploy an existing image »."
+).font.size = Pt(10)
 
 add_step(doc, 18, "Configurer l'image Docker du frontend")
 
-add_table_kv(doc, [
-    ("Image URL",
-     "ghcr.io/rahiming/ml-housting-project/frontend:latest"),
-    ("Registry Credential", "ghcr-ml-housing"),
-], col1="Champ", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        ("Image URL", "ghcr.io/rahiming/ml-housting-project/frontend:latest"),
+        ("Registry Credential", "ghcr-ml-housing"),
+    ],
+    col1="Champ",
+    col2="Valeur",
+)
 
 add_step(doc, 19, "Renseigner les paramètres du service frontend")
 
-add_table_kv(doc, [
-    ("Name",          "ml-housing-frontend"),
-    ("Region",        "Frankfurt (EU Central) — même région que le backend"),
-    ("Instance Type", "Free ou Starter"),
-    ("Port",          "8501"),
-], col1="Champ", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        ("Name", "ml-housing-frontend"),
+        ("Region", "Frankfurt (EU Central) — même région que le backend"),
+        ("Instance Type", "Free ou Starter"),
+        ("Port", "8501"),
+    ],
+    col1="Champ",
+    col2="Valeur",
+)
 
 add_step(doc, 20, "Ajouter la variable d'environnement du frontend")
 doc.add_paragraph(
@@ -643,11 +759,18 @@ doc.add_paragraph(
     "de prédiction."
 )
 
-add_table_kv(doc, [
-    ("BACKEND_URL",
-     "https://ml-housing-backend.onrender.com\n"
-     "Remplacer par l'URL réelle notée à l'étape 16"),
-], col1="Variable", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        (
+            "BACKEND_URL",
+            "https://ml-housing-backend.onrender.com\n"
+            "Remplacer par l'URL réelle notée à l'étape 16",
+        ),
+    ],
+    col1="Variable",
+    col2="Valeur",
+)
 
 add_step(doc, 21, "Déployer le service frontend")
 p = doc.add_paragraph(style="List Number")
@@ -655,7 +778,9 @@ p.add_run("Cliquer sur « Deploy Web Service ».").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Attendre la fin du déploiement (2 à 5 minutes).").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Copier le Service ID (srv-xxxxxxxxxxxxxx) depuis l'onglet « Settings ».").font.size = Pt(10)
+p.add_run(
+    "Copier le Service ID (srv-xxxxxxxxxxxxxx) depuis l'onglet « Settings »."
+).font.size = Pt(10)
 
 doc.add_page_break()
 
@@ -674,12 +799,17 @@ add_heading(doc, "6.1  Accéder aux paramètres du dépôt", 2)
 
 add_step(doc, 22, "Ouvrir la page de configuration du dépôt")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Aller sur https://github.com/rahiming/ml-housting-project").font.size = Pt(10)
+p.add_run("Aller sur https://github.com/rahiming/ml-housting-project").font.size = Pt(
+    10
+)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Cliquer sur l'onglet « Settings » (en haut de la page du dépôt).").font.size = Pt(10)
+p.add_run(
+    "Cliquer sur l'onglet « Settings » (en haut de la page du dépôt)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans le menu de gauche, cliquer sur « Secrets and variables » "
-          "→ « Actions ».").font.size = Pt(10)
+p.add_run(
+    "Dans le menu de gauche, cliquer sur « Secrets and variables » → « Actions »."
+).font.size = Pt(10)
 
 add_heading(doc, "6.2  Créer les secrets GitHub", 2)
 
@@ -688,14 +818,16 @@ doc.add_paragraph(
     "Cliquer sur « New repository secret » pour chaque ligne du tableau suivant."
 )
 
-add_table_kv(doc, [
-    ("RENDER_API_KEY",
-     "La clé API Render générée à l'étape 10 (rnd_xxxx…)"),
-    ("MINIO_ACCESS_KEY",
-     "L'Access Key ID Cloudflare R2 généré à l'étape 5"),
-    ("MINIO_SECRET_KEY",
-     "La Secret Access Key Cloudflare R2 générée à l'étape 5"),
-], col1="Nom du secret", col2="Valeur à renseigner")
+add_table_kv(
+    doc,
+    [
+        ("RENDER_API_KEY", "La clé API Render générée à l'étape 10 (rnd_xxxx…)"),
+        ("MINIO_ACCESS_KEY", "L'Access Key ID Cloudflare R2 généré à l'étape 5"),
+        ("MINIO_SECRET_KEY", "La Secret Access Key Cloudflare R2 générée à l'étape 5"),
+    ],
+    col1="Nom du secret",
+    col2="Valeur à renseigner",
+)
 
 add_heading(doc, "6.3  Créer les variables GitHub", 2)
 
@@ -705,31 +837,45 @@ doc.add_paragraph(
     "pour chaque ligne."
 )
 
-add_table_kv(doc, [
-    ("RENDER_BACKEND_SERVICE_ID",
-     "Le Service ID du backend noté à l'étape 16  (srv-xxxxxxxxxxxxxx)"),
-    ("RENDER_FRONTEND_SERVICE_ID",
-     "Le Service ID du frontend noté à l'étape 21  (srv-yyyyyyyyyyyyyy)"),
-], col1="Nom de la variable", col2="Valeur à renseigner")
+add_table_kv(
+    doc,
+    [
+        (
+            "RENDER_BACKEND_SERVICE_ID",
+            "Le Service ID du backend noté à l'étape 16  (srv-xxxxxxxxxxxxxx)",
+        ),
+        (
+            "RENDER_FRONTEND_SERVICE_ID",
+            "Le Service ID du frontend noté à l'étape 21  (srv-yyyyyyyyyyyyyy)",
+        ),
+    ],
+    col1="Nom de la variable",
+    col2="Valeur à renseigner",
+)
 
 add_heading(doc, "6.4  Configurer l'environnement de protection « production »", 2)
 
-add_info_box(doc,
+add_info_box(
+    doc,
     "Le workflow utilise environment: production, ce qui permet d'ajouter une "
     "protection par approbation manuelle avant chaque déploiement. "
-    "Cette étape est optionnelle mais recommandée."
+    "Cette étape est optionnelle mais recommandée.",
 )
 
 add_step(doc, 23, "Créer l'environnement de protection (optionnel)")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans Settings → Environments, cliquer sur « New environment ».").font.size = Pt(10)
+p.add_run(
+    "Dans Settings → Environments, cliquer sur « New environment »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Name : ").font.size = Pt(10)
 p.add_run("production").font.name = "Courier New"
 p.runs[-1].font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Cocher « Required reviewers » et ajouter votre username GitHub. "
-          "Tout déploiement nécessitera votre approbation.").font.size = Pt(10)
+p.add_run(
+    "Cocher « Required reviewers » et ajouter votre username GitHub. "
+    "Tout déploiement nécessitera votre approbation."
+).font.size = Pt(10)
 
 doc.add_page_break()
 
@@ -748,11 +894,15 @@ doc.add_paragraph(
 
 add_step(doc, 24, "Créer une Pull Request develop → main")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Aller sur https://github.com/rahiming/ml-housting-project/compare/main...develop").font.size = Pt(10)
+p.add_run(
+    "Aller sur https://github.com/rahiming/ml-housting-project/compare/main...develop"
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Create pull request ».").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Attendre que tous les checks CI soient verts (Ruff, Tests, Security…).").font.size = Pt(10)
+p.add_run(
+    "Attendre que tous les checks CI soient verts (Ruff, Tests, Security…)."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur « Merge pull request » → « Confirm merge ».").font.size = Pt(10)
 
@@ -762,9 +912,13 @@ add_step(doc, 25, "Déclencher le workflow Production Deploy")
 p = doc.add_paragraph(style="List Number")
 p.add_run("Aller sur l'onglet « Actions » du dépôt GitHub.").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Dans le menu de gauche, cliquer sur « Production Deploy ».").font.size = Pt(10)
+p.add_run("Dans le menu de gauche, cliquer sur « Production Deploy ».").font.size = Pt(
+    10
+)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Cliquer sur « Run workflow » → s'assurer que la branche est ").font.size = Pt(10)
+p.add_run(
+    "Cliquer sur « Run workflow » → s'assurer que la branche est "
+).font.size = Pt(10)
 p.add_run("main").font.name = "Courier New"
 p.runs[-1].font.size = Pt(10)
 p.add_run(".").font.size = Pt(10)
@@ -776,25 +930,37 @@ add_heading(doc, "7.3  Suivre l'exécution du workflow", 2)
 add_step(doc, 26, "Surveiller les deux jobs du workflow")
 doc.add_paragraph("Le workflow exécute deux jobs séquentiels :")
 
-add_table_kv(doc, [
-    ("publish-images (5-10 min)",
-     "Build Docker des deux images → push vers GHCR avec les tags\n"
-     "prod, latest et sha-<commit>"),
-    ("deploy-render (3-15 min)",
-     "Déclenche le déploiement Render via API →\n"
-     "Polling du statut toutes les 20s jusqu'à status=live →\n"
-     "Affiche les URLs dans le deployment summary"),
-], col1="Job", col2="Ce qu'il fait")
+add_table_kv(
+    doc,
+    [
+        (
+            "publish-images (5-10 min)",
+            "Build Docker des deux images → push vers GHCR avec les tags\n"
+            "prod, latest et sha-<commit>",
+        ),
+        (
+            "deploy-render (3-15 min)",
+            "Déclenche le déploiement Render via API →\n"
+            "Polling du statut toutes les 20s jusqu'à status=live →\n"
+            "Affiche les URLs dans le deployment summary",
+        ),
+    ],
+    col1="Job",
+    col2="Ce qu'il fait",
+)
 
 p = doc.add_paragraph(style="List Number")
 p.add_run("Cliquer sur le run en cours pour voir les détails.").font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("À la fin, cliquer sur l'onglet « Summary » pour voir le tableau "
-          "récapitulatif avec les URLs de production.").font.size = Pt(10)
+p.add_run(
+    "À la fin, cliquer sur l'onglet « Summary » pour voir le tableau "
+    "récapitulatif avec les URLs de production."
+).font.size = Pt(10)
 
-add_success_box(doc,
+add_success_box(
+    doc,
     "Si les deux jobs sont verts, l'application est en production ! "
-    "Les URLs backend et frontend sont affichées dans le deployment summary."
+    "Les URLs backend et frontend sont affichées dans le deployment summary.",
 )
 
 doc.add_page_break()
@@ -809,22 +975,25 @@ add_heading(doc, "8.1  Vérification du backend", 2)
 
 add_step(doc, 27, "Tester l'endpoint de santé")
 doc.add_paragraph("Ouvrir un terminal et exécuter :")
-add_code(doc,
+add_code(
+    doc,
     "curl https://ml-housing-backend.onrender.com/health\n\n"
     "# Réponse attendue :\n"
     '{"status": "ok"}',
-    title="Test health endpoint"
+    title="Test health endpoint",
 )
-add_warning_box(doc,
+add_warning_box(
+    doc,
     "Si le backend est en veille (plan Free), la première requête peut prendre "
-    "30 à 60 secondes. Attendre et réessayer si un timeout se produit."
+    "30 à 60 secondes. Attendre et réessayer si un timeout se produit.",
 )
 
 add_step(doc, 28, "Tester l'endpoint de prédiction")
-add_code(doc,
-    'curl -X POST https://ml-housing-backend.onrender.com/predict \\\n'
+add_code(
+    doc,
+    "curl -X POST https://ml-housing-backend.onrender.com/predict \\\n"
     '  -H "Content-Type: application/json" \\\n'
-    '  -d \'{\n'
+    "  -d '{\n"
     '    "median_income": 3.5,\n'
     '    "housing_median_age": 20.0,\n'
     '    "average_rooms": 5.0,\n'
@@ -833,37 +1002,46 @@ add_code(doc,
     '    "average_occupancy": 3.0,\n'
     '    "latitude": 34.0,\n'
     '    "longitude": -118.0\n'
-    '  }\'\n\n'
+    "  }'\n\n"
     "# Réponse attendue (valeurs approximatives) :\n"
-    '{\n'
+    "{\n"
     '  "prediction": 2.45,\n'
     '  "variant": "A",\n'
     '  "model_version": "model_v1",\n'
     '  "execution_mode": "ab_registry",\n'
     '  "latency_ms": 45.3,\n'
     '  "request_id": "uuid-xxxx-xxxx"\n'
-    '}',
-    title="Test predict endpoint"
+    "}",
+    title="Test predict endpoint",
 )
 
 add_heading(doc, "8.2  Vérification du frontend", 2)
 
 add_step(doc, 29, "Tester l'interface Streamlit")
 p = doc.add_paragraph(style="List Number")
-p.add_run("Ouvrir l'URL du frontend dans un navigateur : "
-          "https://ml-housing-frontend.onrender.com").font.size = Pt(10)
+p.add_run(
+    "Ouvrir l'URL du frontend dans un navigateur : "
+    "https://ml-housing-frontend.onrender.com"
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("L'interface doit afficher le titre « A/B Testing - Prediction immobiliere ».").font.size = Pt(10)
+p.add_run(
+    "L'interface doit afficher le titre « A/B Testing - Prediction immobiliere »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Renseigner des valeurs dans les champs et cliquer sur « Predire ».").font.size = Pt(10)
+p.add_run(
+    "Renseigner des valeurs dans les champs et cliquer sur « Predire »."
+).font.size = Pt(10)
 p = doc.add_paragraph(style="List Number")
-p.add_run("Vérifier que le résultat s'affiche avec la prédiction, "
-          "la variante (A ou B) et la version du modèle.").font.size = Pt(10)
+p.add_run(
+    "Vérifier que le résultat s'affiche avec la prédiction, "
+    "la variante (A ou B) et la version du modèle."
+).font.size = Pt(10)
 
-add_success_box(doc,
+add_success_box(
+    doc,
     "L'application est opérationnelle en production. "
     "Le système A/B routing fonctionne : les utilisateurs avec user_id 'alice' "
-    "seront systématiquement routés vers la variante B."
+    "seront systématiquement routés vers la variante B.",
 )
 
 doc.add_page_break()
@@ -882,7 +1060,7 @@ problems = [
             "Vérifier la valeur dans GitHub Settings → Secrets → RENDER_API_KEY.",
             "Régénérer une clé API dans Render (Account Settings → API Keys).",
             "Mettre à jour le secret GitHub avec la nouvelle valeur.",
-        ]
+        ],
     ),
     (
         "Le workflow échoue sur « Trigger Backend Deploy » avec une erreur 404",
@@ -891,7 +1069,7 @@ problems = [
             "Dans Render, aller sur le service backend → Settings.",
             "Vérifier que le Service ID dans GitHub Variables correspond exactement.",
             "Format attendu : srv-xxxxxxxxxxxxxx (17 caractères après 'srv-').",
-        ]
+        ],
     ),
     (
         "Deploy status reste « build_in_progress » puis « build_failed »",
@@ -901,7 +1079,7 @@ problems = [
             "Vérifier que le Personal Access Token GitHub n'a pas expiré.",
             "S'assurer que l'image existe bien dans GHCR (onglet Packages du dépôt GitHub).",
             "Dans Render, aller sur le service → Events pour voir les détails de l'erreur.",
-        ]
+        ],
     ),
     (
         "Le backend démarre mais échoue avec « L'application ne peut pas démarrer sans modèle »",
@@ -913,7 +1091,7 @@ problems = [
             "sont présents dans le bucket ml-models de Cloudflare R2.",
             "Tester l'accès R2 avec : aws s3 ls s3://ml-models/ "
             "--endpoint-url https://<id>.r2.cloudflarestorage.com",
-        ]
+        ],
     ),
     (
         "Le frontend affiche « Erreur : impossible de contacter le serveur backend FastAPI »",
@@ -922,7 +1100,7 @@ problems = [
             "Vérifier que BACKEND_URL dans le service frontend Render contient l'URL exacte du backend.",
             "Tester manuellement : curl https://ml-housing-backend.onrender.com/health",
             "Si le backend est en veille (plan Free), attendre 60s et réessayer.",
-        ]
+        ],
     ),
     (
         "L'endpoint /predict retourne « legacy_fallback » au lieu de « ab_registry »",
@@ -933,7 +1111,7 @@ problems = [
             "sont définis dans les variables d'environnement Render du backend.",
             "Ce comportement est normal si seul model_latest.joblib est dans R2 "
             "(fallback sur le modèle de référence).",
-        ]
+        ],
     ),
 ]
 
@@ -959,50 +1137,89 @@ add_heading(doc, "10. Annexes — Récapitulatif complet des variables", 1)
 
 add_heading(doc, "10.1  Variables d'environnement Render — Service Backend", 2)
 
-add_table_kv(doc, [
-    ("MINIO_ENDPOINT",        "https://<ACCOUNT_ID>.r2.cloudflarestorage.com"),
-    ("MINIO_BUCKET_MODELS",   "ml-models"),
-    ("MODEL_OBJECT_NAME",     "model_latest.joblib"),
-    ("MODEL_A_OBJECT_NAME",   "model_v1.joblib"),
-    ("MODEL_B_OBJECT_NAME",   "model_v2.joblib"),
-    ("AB_TRAFFIC_B_PERCENT",  "50"),
-    ("MINIO_ACCESS_KEY",      "*** Secret — Access Key ID Cloudflare R2 ***"),
-    ("MINIO_SECRET_KEY",      "*** Secret — Secret Access Key Cloudflare R2 ***"),
-], col1="Variable", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        ("MINIO_ENDPOINT", "https://<ACCOUNT_ID>.r2.cloudflarestorage.com"),
+        ("MINIO_BUCKET_MODELS", "ml-models"),
+        ("MODEL_OBJECT_NAME", "model_latest.joblib"),
+        ("MODEL_A_OBJECT_NAME", "model_v1.joblib"),
+        ("MODEL_B_OBJECT_NAME", "model_v2.joblib"),
+        ("AB_TRAFFIC_B_PERCENT", "50"),
+        ("MINIO_ACCESS_KEY", "*** Secret — Access Key ID Cloudflare R2 ***"),
+        ("MINIO_SECRET_KEY", "*** Secret — Secret Access Key Cloudflare R2 ***"),
+    ],
+    col1="Variable",
+    col2="Valeur",
+)
 
 add_heading(doc, "10.2  Variables d'environnement Render — Service Frontend", 2)
 
-add_table_kv(doc, [
-    ("BACKEND_URL", "https://ml-housing-backend.onrender.com"),
-], col1="Variable", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        ("BACKEND_URL", "https://ml-housing-backend.onrender.com"),
+    ],
+    col1="Variable",
+    col2="Valeur",
+)
 
 add_heading(doc, "10.3  Secrets GitHub (Settings → Secrets and variables → Secrets)", 2)
 
-add_table_kv(doc, [
-    ("RENDER_API_KEY",   "Clé API Render (rnd_xxxx…)"),
-    ("MINIO_ACCESS_KEY", "Access Key ID Cloudflare R2"),
-    ("MINIO_SECRET_KEY", "Secret Access Key Cloudflare R2"),
-], col1="Secret", col2="Description")
+add_table_kv(
+    doc,
+    [
+        ("RENDER_API_KEY", "Clé API Render (rnd_xxxx…)"),
+        ("MINIO_ACCESS_KEY", "Access Key ID Cloudflare R2"),
+        ("MINIO_SECRET_KEY", "Secret Access Key Cloudflare R2"),
+    ],
+    col1="Secret",
+    col2="Description",
+)
 
-add_heading(doc, "10.4  Variables GitHub (Settings → Secrets and variables → Variables)", 2)
+add_heading(
+    doc, "10.4  Variables GitHub (Settings → Secrets and variables → Variables)", 2
+)
 
-add_table_kv(doc, [
-    ("RENDER_BACKEND_SERVICE_ID",  "srv-xxxxxxxxxxxxxx (onglet Settings du service backend Render)"),
-    ("RENDER_FRONTEND_SERVICE_ID", "srv-yyyyyyyyyyyyyy (onglet Settings du service frontend Render)"),
-], col1="Variable", col2="Valeur")
+add_table_kv(
+    doc,
+    [
+        (
+            "RENDER_BACKEND_SERVICE_ID",
+            "srv-xxxxxxxxxxxxxx (onglet Settings du service backend Render)",
+        ),
+        (
+            "RENDER_FRONTEND_SERVICE_ID",
+            "srv-yyyyyyyyyyyyyy (onglet Settings du service frontend Render)",
+        ),
+    ],
+    col1="Variable",
+    col2="Valeur",
+)
 
 add_heading(doc, "10.5  URLs utiles", 2)
 
-add_table_kv(doc, [
-    ("Cloudflare Dashboard",      "https://dash.cloudflare.com"),
-    ("Cloudflare R2 API Tokens",  "https://dash.cloudflare.com/profile/api-tokens"),
-    ("Render Dashboard",          "https://dashboard.render.com"),
-    ("Render Registry Credentials","https://dashboard.render.com/u/settings#registries"),
-    ("Render API Keys",           "https://dashboard.render.com/u/settings#apikeys"),
-    ("GitHub Secrets",            "https://github.com/rahiming/ml-housting-project/settings/secrets/actions"),
-    ("GitHub Actions",            "https://github.com/rahiming/ml-housting-project/actions"),
-    ("GHCR Images",               "https://github.com/rahiming?tab=packages"),
-], col1="Ressource", col2="URL")
+add_table_kv(
+    doc,
+    [
+        ("Cloudflare Dashboard", "https://dash.cloudflare.com"),
+        ("Cloudflare R2 API Tokens", "https://dash.cloudflare.com/profile/api-tokens"),
+        ("Render Dashboard", "https://dashboard.render.com"),
+        (
+            "Render Registry Credentials",
+            "https://dashboard.render.com/u/settings#registries",
+        ),
+        ("Render API Keys", "https://dashboard.render.com/u/settings#apikeys"),
+        (
+            "GitHub Secrets",
+            "https://github.com/rahiming/ml-housting-project/settings/secrets/actions",
+        ),
+        ("GitHub Actions", "https://github.com/rahiming/ml-housting-project/actions"),
+        ("GHCR Images", "https://github.com/rahiming?tab=packages"),
+    ],
+    col1="Ressource",
+    col2="URL",
+)
 
 add_heading(doc, "10.6  Ordre récapitulatif des étapes", 2)
 
@@ -1031,7 +1248,12 @@ for i, step_text in enumerate(all_steps, 1):
     cells[0].text = str(i)
     cells[1].text = step_text
     shading = OxmlElement("w:shd")
-    shading.set(qn("w:fill"), "1A56DB" if i <= 4 else ("059669" if i <= 7 else ("7C3AED" if i <= 12 else "DC2626")))
+    shading.set(
+        qn("w:fill"),
+        "1A56DB"
+        if i <= 4
+        else ("059669" if i <= 7 else ("7C3AED" if i <= 12 else "DC2626")),
+    )
     shading.set(qn("w:val"), "clear")
     cells[0]._tc.get_or_add_tcPr().append(shading)
     for run in cells[0].paragraphs[0].runs:
@@ -1061,7 +1283,9 @@ r.italic = True
 
 # ── Sauvegarde ────────────────────────────────────────────────────────────────
 
-output_path = os.path.join(os.path.dirname(__file__), "..", "Guide_Deploiement_Render.docx")
+output_path = os.path.join(
+    os.path.dirname(__file__), "..", "docs", "Guide_Deploiement_Render.docx"
+)
 output_path = os.path.normpath(output_path)
 doc.save(output_path)
 print(f"Document généré : {output_path}")
