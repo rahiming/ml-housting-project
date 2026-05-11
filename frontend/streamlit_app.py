@@ -30,7 +30,7 @@ def build_payload(
     longitude: float,
 ) -> dict:
     """
-    Construit le dictionnaire (payload) au format attendu par le schéma HousingFeatures 
+    Construit le dictionnaire (payload) au format attendu par le schéma HousingFeatures
     du backend.
     """
     return {

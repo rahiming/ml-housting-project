@@ -10,7 +10,7 @@ TARGET_COLUMN = "MedHouseVal"
 def engineer_features(X: pd.DataFrame) -> pd.DataFrame:
     """
     Applique les transformations de variables (feature engineering).
-    
+
     Cette fonction est le point unique de vérité pour les calculs de features,
     garantissant qu'aucune divergence n'apparaît entre l'entraînement et l'inférence."""
     X = X.copy()
@@ -23,7 +23,7 @@ def engineer_features(X: pd.DataFrame) -> pd.DataFrame:
 def engineer_features_names(transformer, input_features):
     """
     Retourne la liste des noms de colonnes après transformation.
-    Requis pour la compatibilité avec scikit-learn 
+    Requis pour la compatibilité avec scikit-learn
     FunctionTransformer (set_output='pandas').
     """
     return np.append(input_features, "RoomsPerOccupancy")

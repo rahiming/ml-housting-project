@@ -40,7 +40,7 @@ def predict_with_experiment(payload: dict) -> tuple[float, dict]:
     """
     Exécute l'inférence en utilisant le routage A/B si disponible,
     sinon bascule sur le modèle legacy.
-    
+
     Cette fonction centralise la logique métier de l'expérimentation :
     1. Attribution d'un ID de requête unique.
     2. Sélection de la variante (A ou B) via le ab_router.
@@ -106,7 +106,7 @@ def predict_with_experiment(payload: dict) -> tuple[float, dict]:
 async def lifespan(app: FastAPI):
     """
     Gère le cycle de vie de l'application FastAPI.
-    
+
     S'assure que les ressources critiques (modèles depuis MinIO) sont disponibles
     avant que l'API ne commence à accepter des requêtes HTTP.
     """

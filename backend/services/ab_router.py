@@ -5,7 +5,7 @@ def choose_variant(user_id: str, traffic_b_percent: int = 50) -> str:
     """
     Détermine la variante A/B pour un utilisateur de façon déterministe.
 
-    Utilise un hachage MD5 de l'ID utilisateur pour garantir que le même utilisateur 
+    Utilise un hachage MD5 de l'ID utilisateur pour garantir que le même utilisateur
     retombe toujours dans le même bucket, assurant une expérience stable.
 
     Args:
