@@ -1,6 +1,7 @@
 # Environnements Python
 .venv/
 venv/
+logs/
 mon_env/
 __pycache__/
 *.pyc

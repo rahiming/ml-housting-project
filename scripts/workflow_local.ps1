@@ -135,7 +135,7 @@ Write-Step "Black format check"
 Invoke-External -FilePath $blackCmd -Arguments @("--check", ".")
 
 Write-Step "Pytest avec couverture"
-Invoke-External -FilePath $pytestCmd -Arguments @("-v", "--cov=src")
+Invoke-External -FilePath $pytestCmd -Arguments @("-v", "--cov=src", "--cov=backend")
 
 if (-not $SkipBandit) {
     if ($banditCmd) {

@@ -1,6 +1,7 @@
 import logging
 import os
 import time
+from pathlib import Path
 
 import boto3
 from botocore.exceptions import ClientError
@@ -88,6 +89,14 @@ def download_model_from_s3():
         "LOCAL_MODEL_PATH", "/app/artifacts/models/model_latest.joblib"
     )
 
+    return download_named_model_from_s3(bucket_name, object_name, local_model_path)
+
+
+def download_named_model_from_s3(
+    bucket_name: str, object_name: str, local_model_path: str
+):
+    """Download one named model object from MinIO to a local filesystem path."""
+
     logger.info(
         "Preparation du telechargement du modele. bucket=%s object=%s local_path=%s",
         bucket_name,
@@ -134,3 +143,34 @@ def download_model_from_s3():
             f"Impossible de telecharger le modele s3://{bucket_name}/{object_name}. "
             "Verifier que le fichier model_latest.joblib a bien ete upload dans MinIO."
         ) from exc
+
+
+def download_ab_models_from_s3() -> dict:
+    """Download the versioned A/B models required by the experiment registry."""
+    bucket_name = os.getenv("MINIO_BUCKET_MODELS")
+    base_models_dir = Path(
+        os.getenv("LOCAL_MODEL_PATH", "/app/artifacts/models/model_latest.joblib")
+    ).parent
+    model_a_path = os.getenv(
+        "MODEL_A_LOCAL_PATH", str(base_models_dir / "model_v1.joblib")
+    )
+    model_b_path = os.getenv(
+        "MODEL_B_LOCAL_PATH", str(base_models_dir / "model_v2.joblib")
+    )
+    model_a_object = os.getenv("MODEL_A_OBJECT_NAME", "model_v1.joblib")
+    model_b_object = os.getenv("MODEL_B_OBJECT_NAME", "model_v2.joblib")
+
+    logger.info(
+        (
+            "Preparation du telechargement des modeles A/B. bucket=%s "
+            "model_a=%s model_b=%s"
+        ),
+        bucket_name,
+        model_a_object,
+        model_b_object,
+    )
+
+    return {
+        "A": download_named_model_from_s3(bucket_name, model_a_object, model_a_path),
+        "B": download_named_model_from_s3(bucket_name, model_b_object, model_b_path),
+    }

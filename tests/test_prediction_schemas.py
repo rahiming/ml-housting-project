@@ -18,6 +18,7 @@ def test_housing_features_valid_data():
     }
     features = HousingFeatures(**data)
     assert features.median_income == 3.0
+    assert features.user_id == "anonymous"
 
 
 def test_housing_features_invalid_data():
