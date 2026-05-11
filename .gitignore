@@ -42,3 +42,6 @@ artifacts/*.pkl
 
 # Documentation
 docs/
+
+# Scripts locaux non versionnés
+scripts/generate_deploy_doc.py
