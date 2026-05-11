@@ -2,10 +2,15 @@ import hashlib
 
 
 def choose_variant(user_id: str, traffic_b_percent: int = 50) -> str:
-    """Retourne A ou B de façon déterministe.
+    """
+    Détermine la variante A/B pour un utilisateur de façon déterministe.
 
-    Même user_id => même variante.
-    traffic_b_percent=50 signifie 50% vers B, 50% vers A.
+    Utilise un hachage MD5 de l'ID utilisateur pour garantir que le même utilisateur 
+    retombe toujours dans le même bucket, assurant une expérience stable.
+
+    Args:
+        user_id: Identifiant de l'utilisateur (ou "anonymous" si absent).
+        traffic_b_percent: Pourcentage de trafic dirigé vers la variante B (0-100).
     """
     if not user_id:
         user_id = "anonymous"

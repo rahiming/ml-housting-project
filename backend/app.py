@@ -37,7 +37,16 @@ REQUIRE_AB_MODELS = os.getenv("REQUIRE_AB_MODELS", "0") == "1"
 
 
 def predict_with_experiment(payload: dict) -> tuple[float, dict]:
-    """Run inference with the A/B registry when available, else fall back safely."""
+    """
+    Exécute l'inférence en utilisant le routage A/B si disponible, sinon bascule sur le modèle legacy.
+    
+    Cette fonction centralise la logique métier de l'expérimentation :
+    1. Attribution d'un ID de requête unique.
+    2. Sélection de la variante (A ou B) via le ab_router.
+    3. Tentative de prédiction via le registre de modèles (A/B).
+    4. Repli (fallback) sur la fonction de prédiction unifiée en cas d'erreur.
+    5. Journalisation complète de l'événement pour analyse ultérieure.
+    """
     start = time.perf_counter()
     request_id = str(uuid.uuid4())
     user_id = payload.get("user_id") or "anonymous"
@@ -94,7 +103,12 @@ def predict_with_experiment(payload: dict) -> tuple[float, dict]:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Prepare l'application avant l'ouverture des routes HTTP."""
+    """
+    Gère le cycle de vie de l'application FastAPI.
+    
+    S'assure que les ressources critiques (modèles depuis MinIO) sont disponibles
+    avant que l'API ne commence à accepter des requêtes HTTP.
+    """
     logger.info("Initialisation du cycle de vie FastAPI.")
 
     # Les tests unitaires n'ont pas besoin d'un vrai stockage MinIO ni d'un vrai

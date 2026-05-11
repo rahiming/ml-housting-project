@@ -29,7 +29,10 @@ def build_payload(
     latitude: float,
     longitude: float,
 ) -> dict:
-    """Build the request body expected by the public FastAPI schema."""
+    """
+    Construit le dictionnaire (payload) au format attendu par le schéma HousingFeatures 
+    du backend.
+    """
     return {
         "user_id": user_id,
         "median_income": median_income,
