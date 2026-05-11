@@ -38,7 +38,8 @@ REQUIRE_AB_MODELS = os.getenv("REQUIRE_AB_MODELS", "0") == "1"
 
 def predict_with_experiment(payload: dict) -> tuple[float, dict]:
     """
-    Exécute l'inférence en utilisant le routage A/B si disponible, sinon bascule sur le modèle legacy.
+    Exécute l'inférence en utilisant le routage A/B si disponible,
+    sinon bascule sur le modèle legacy.
     
     Cette fonction centralise la logique métier de l'expérimentation :
     1. Attribution d'un ID de requête unique.

@@ -23,7 +23,8 @@ def engineer_features(X: pd.DataFrame) -> pd.DataFrame:
 def engineer_features_names(transformer, input_features):
     """
     Retourne la liste des noms de colonnes après transformation.
-    Requis pour la compatibilité avec scikit-learn FunctionTransformer (set_output='pandas').
+    Requis pour la compatibilité avec scikit-learn 
+    FunctionTransformer (set_output='pandas').
     """
     return np.append(input_features, "RoomsPerOccupancy")
 
