@@ -36,8 +36,7 @@ def main():
         )
 
     uploads = {
-        MODELS_DIR / local_name: hf_name
-        for local_name, hf_name in MODEL_FILES.items()
+        MODELS_DIR / local_name: hf_name for local_name, hf_name in MODEL_FILES.items()
     }
 
     missing = [str(p) for p in uploads if not p.exists()]
