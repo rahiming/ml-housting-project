@@ -19,6 +19,10 @@ htmlcov/
 *.ipynb
 !notebooks/*.ipynb
 
+# MLFlow
+mlruns/
+mlartifacts/
+
 # Données et modèles locaux
 data/
 models/

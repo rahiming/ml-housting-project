@@ -5,6 +5,8 @@ import logging
 from pathlib import Path
 
 import joblib
+import mlflow
+import mlflow.sklearn
 
 from src.common.features import split_features_target, split_train_test
 from src.training.data import load_housing_data
@@ -12,6 +14,8 @@ from src.training.evaluate import evaluate_model
 from src.training.train import train_model
 
 logger = logging.getLogger(__name__)
+
+MLFLOW_EXPERIMENT = "housing_price_prediction"
 
 
 def get_next_version(artifacts_dir: str = "artifacts") -> str:
@@ -39,7 +43,7 @@ def get_next_version(artifacts_dir: str = "artifacts") -> str:
 
 
 def run_pipeline(artifacts_dir: str = "artifacts", version: str = "") -> dict:
-    """Execute le pipeline complet : data, train, evaluation, sauvegarde."""
+    """Execute le pipeline complet avec tracking MLFlow."""
     artifacts_path = Path(artifacts_dir).resolve()
     models_path = artifacts_path / "models"
     metrics_path = artifacts_path / "metrics"
@@ -51,11 +55,6 @@ def run_pipeline(artifacts_dir: str = "artifacts", version: str = "") -> dict:
 
     models_path.mkdir(parents=True, exist_ok=True)
     metrics_path.mkdir(parents=True, exist_ok=True)
-    logger.info(
-        "Dossiers d'artefacts verifies. models=%s metrics=%s",
-        models_path,
-        metrics_path,
-    )
 
     df = load_housing_data()
     logger.info("Dataset charge. lignes=%s colonnes=%s", len(df), len(df.columns))
@@ -70,25 +69,46 @@ def run_pipeline(artifacts_dir: str = "artifacts", version: str = "") -> dict:
         X_test.shape,
     )
 
-    model = train_model(X_train, y_train)
-    logger.info("Modele entraine avec succes.")
+    mlflow.set_experiment(MLFLOW_EXPERIMENT)
 
-    metrics = evaluate_model(model, X_test, y_test)
-    logger.info("Evaluation terminee. metrics=%s", metrics)
+    with mlflow.start_run(run_name=f"run_{version}" if version else None):
+        mlflow.log_param("model_type", "RandomForestRegressor")
+        mlflow.log_param("n_estimators", 100)
+        mlflow.log_param("random_state", 42)
+        mlflow.log_param("version", version or "latest")
+        mlflow.log_param("train_size", len(X_train))
+        mlflow.log_param("test_size", len(X_test))
 
-    suffix = f"_{version}" if version else ""
-    model_file = models_path / f"model{suffix}.joblib"
-    metrics_file = metrics_path / f"metrics{suffix}.json"
+        model = train_model(X_train, y_train)
+        logger.info("Modele entraine avec succes.")
 
-    logger.info("Sauvegarde du modele versionne dans %s", model_file)
-    joblib.dump(model, model_file)
+        metrics = evaluate_model(model, X_test, y_test)
+        mlflow.log_metric("mae", metrics["mae"])
+        mlflow.log_metric("rmse", metrics["rmse"])
+        mlflow.log_metric("r2", metrics["r2"])
+        logger.info("Evaluation terminee. metrics=%s", metrics)
 
-    latest_path = models_path / "model_latest.joblib"
-    logger.info("Sauvegarde de la copie latest dans %s", latest_path)
-    joblib.dump(model, latest_path)
+        suffix = f"_{version}" if version else ""
+        model_file = models_path / f"model{suffix}.joblib"
+        metrics_file = metrics_path / f"metrics{suffix}.json"
 
-    with open(metrics_file, "w", encoding="utf-8") as file:
-        json.dump(metrics, file, indent=2)
-    logger.info("Metriques enregistrees dans %s", metrics_file)
+        joblib.dump(model, model_file)
+        logger.info("Sauvegarde du modele versionne dans %s", model_file)
+
+        latest_path = models_path / "model_latest.joblib"
+        joblib.dump(model, latest_path)
+        logger.info("Sauvegarde de la copie latest dans %s", latest_path)
+
+        with open(metrics_file, "w", encoding="utf-8") as file:
+            json.dump(metrics, file, indent=2)
+        logger.info("Metriques enregistrees dans %s", metrics_file)
+
+        mlflow.sklearn.log_model(
+            sk_model=model,
+            artifact_path="model",
+            registered_model_name=f"housing_{version}" if version else "housing_latest",
+        )
+        mlflow.log_artifact(str(metrics_file), artifact_path="metrics")
+        logger.info("Run MLFlow enregistre avec succes.")
 
     return metrics
