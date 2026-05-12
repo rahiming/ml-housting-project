@@ -141,6 +141,27 @@ jobs:
       BACKEND_IMAGE: ghcr.io/${{ github.repository }}/backend:sha-${{ github.sha }}
       FRONTEND_IMAGE: ghcr.io/${{ github.repository }}/frontend:sha-${{ github.sha }}
     steps:
+      - name: Check Required Secrets And Variables
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          RENDER_BACKEND_SERVICE_ID: ${{ vars.RENDER_BACKEND_SERVICE_ID }}
+          RENDER_FRONTEND_SERVICE_ID: ${{ vars.RENDER_FRONTEND_SERVICE_ID }}
+        run: |
+          missing=0
+          if [ -z "$RENDER_BACKEND_SERVICE_ID" ]; then
+            echo "::error::RENDER_BACKEND_SERVICE_ID non defini — GitHub Settings → Variables → Actions"
+            missing=1
+          fi
+          if [ -z "$RENDER_FRONTEND_SERVICE_ID" ]; then
+            echo "::error::RENDER_FRONTEND_SERVICE_ID non defini — GitHub Settings → Variables → Actions"
+            missing=1
+          fi
+          if [ -z "$RENDER_API_KEY" ]; then
+            echo "::error::RENDER_API_KEY non defini — GitHub Settings → Secrets → Actions"
+            missing=1
+          fi
+          [ "$missing" -eq 0 ] || exit 1
+
       - name: Prepare Deployment Variables
         run: |
           echo "--- Render Deployment Configuration ---"

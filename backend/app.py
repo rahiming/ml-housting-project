@@ -11,10 +11,6 @@ from fastapi import FastAPI
 from backend.services.ab_router import choose_variant
 from backend.services.experiment_logger import log_prediction
 from backend.services.model_registry import MODEL_VERSIONS, get_models
-from backend.storage.s3_client import (
-    download_ab_models_from_s3,
-    download_model_from_s3,
-)
 from src.prediction.model_loader import get_model
 from src.prediction.predict import make_prediction, normalize_prediction_features
 from src.prediction.schemas import HousingFeatures
@@ -112,21 +108,41 @@ async def lifespan(app: FastAPI):
     """
     logger.info("Initialisation du cycle de vie FastAPI.")
 
-    # Les tests unitaires n'ont pas besoin d'un vrai stockage MinIO ni d'un vrai
+    # Les tests unitaires n'ont pas besoin d'un vrai stockage ni d'un vrai
     # chargement de modele. Cette variable permet d'isoler les tests du runtime.
     if os.getenv("SKIP_MINIO_STARTUP", "0") == "1":
-        logger.info(
-            "Mode test detecte : initialisation MinIO et chargement du modele ignores."
-        )
+        logger.info("Mode test detecte : stockage et chargement du modele ignores.")
         yield
         logger.info("Fermeture du cycle de vie FastAPI en mode test.")
         return
 
-    # Etape 1 : recuperer le modele de reference depuis MinIO vers le filesystem
+    # Sélection du backend de stockage selon la présence de HF_REPO_ID.
+    if os.getenv("HF_REPO_ID"):
+        from backend.storage.hf_client import (
+            download_ab_models_from_hf as _download_ab_models,
+        )
+        from backend.storage.hf_client import (
+            download_model_from_hf as _download_model,
+        )
+
+        logger.info(
+            "Stockage des modeles : HuggingFace Hub (repo=%s)", os.getenv("HF_REPO_ID")
+        )
+    else:
+        from backend.storage.s3_client import (
+            download_ab_models_from_s3 as _download_ab_models,
+        )
+        from backend.storage.s3_client import (
+            download_model_from_s3 as _download_model,
+        )
+
+        logger.info("Stockage des modeles : MinIO / S3")
+
+    # Etape 1 : recuperer le modele de reference depuis le stockage vers le filesystem
     # local du conteneur backend.
     try:
-        logger.info("Demarrage du telechargement du modele depuis MinIO.")
-        model_path = download_model_from_s3()
+        logger.info("Demarrage du telechargement du modele principal.")
+        model_path = _download_model()
         logger.info("Modele telecharge et pret a etre charge depuis : %s", model_path)
     except Exception as exc:
         logger.error("Echec critique pendant le telechargement du modele : %s", exc)
@@ -146,10 +162,10 @@ async def lifespan(app: FastAPI):
             f"L'application ne peut pas demarrer sans modele : {exc}"
         ) from exc
 
-    # Etape 3 : si les artefacts A/B existent localement, les precharger aussi.
+    # Etape 3 : si les artefacts A/B existent, les precharger aussi.
     try:
         logger.info("Demarrage du telechargement des modeles A/B versionnes.")
-        downloaded_ab_models = download_ab_models_from_s3()
+        downloaded_ab_models = _download_ab_models()
         logger.info("Modeles A/B telecharges avec succes : %s", downloaded_ab_models)
         logger.info("Verification de la disponibilite du registry A/B.")
         get_models()
