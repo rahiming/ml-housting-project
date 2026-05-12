@@ -17,6 +17,7 @@ htmlcov/
 .ipynb_checkpoints/
 */.ipynb_checkpoints/
 *.ipynb
+!notebooks/*.ipynb
 
 # Données et modèles locaux
 data/
