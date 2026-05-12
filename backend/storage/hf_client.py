@@ -30,7 +30,7 @@ def _download_file(filename: str, local_path: str) -> str:
         local_path,
     )
 
-    hf_hub_download(
+    hf_hub_download(  # nosec B615 — dépôt privé sous notre contrôle
         repo_id=repo_id,
         filename=filename,
         repo_type="model",
