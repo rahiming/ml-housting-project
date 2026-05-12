@@ -1,42 +1,49 @@
 # Manuel d'utilisation
 
-## Public vise
+## Public visé
 
-Ce manuel est destine a un utilisateur qui doit :
+Ce manuel est destiné à un étudiant ou développeur qui doit :
 
-- installer et demarrer l'application en local
-- entrainer un modele et le publier
-- lancer des predictions (frontend ou API)
-- deployer l'application en production sur Render.com
-- comprendre les incidents les plus frequents
+- installer et démarrer l'application en local
+- entraîner les modèles et les publier sur HuggingFace Hub
+- lancer des prédictions via le frontend ou l'API
+- déployer l'application en production sur Render.com
+- comprendre le workflow MLFlow (tracking → registry → déploiement)
 
 ---
 
 ## Vue d'ensemble
 
-L'application estime un prix immobilier a partir de caracteristiques de quartier.
-Elle embarque un mecanisme d'experimentation A/B : chaque requete est routee
-de facon deterministe vers le modele A ou B selon l'identifiant utilisateur.
+L'application estime un prix immobilier à partir de caractéristiques de quartier.
+Elle embarque un mécanisme d'expérimentation A/B : chaque requête est routée
+de façon déterministe vers le modèle A (RandomForest, champion) ou le modèle B
+(GradientBoosting, challenger) selon l'identifiant utilisateur.
 
 Cycle normal d'utilisation :
 
-1. entrainer ou recuperer les modeles
-2. stocker les modeles dans MinIO (local) ou Cloudflare R2 (production)
-3. demarrer le backend FastAPI et le frontend Streamlit
-4. utiliser l'interface ou l'API `/predict`
+1. Entraîner les modèles (pipeline ou notebook)
+2. Valider les métriques dans MLFlow UI
+3. Promouvoir les meilleurs modèles en stage Production dans le Registry
+4. Uploader vers HuggingFace Hub via `upload_model_to_hf.py`
+5. Le backend Render charge les modèles depuis HF Hub au démarrage
 
 ---
 
-## Installation locale pas a pas
+## Prérequis
 
-### Recuperer le projet
+Créer les comptes suivants (tous gratuits) :
 
-```powershell
-git clone https://github.com/rahiming/ml-housting-project.git
-cd ml-housing-project
-```
+| Service | Usage | Lien |
+|---------|-------|------|
+| HuggingFace | Stockage des modèles | huggingface.co |
+| Render | Hébergement backend + frontend | render.com |
+| Neon | Logs PostgreSQL A/B (optionnel) | neon.tech |
 
-### Preparer Python
+---
+
+## Installation locale pas à pas
+
+### Préparer Python
 
 ```powershell
 python -m venv mon_env
@@ -46,83 +53,105 @@ pip install -r requirements.txt
 pip install -e ".[dev]"
 ```
 
-### Preparer l'environnement
+### Configurer l'environnement
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
----
+Ouvrir `.env` et renseigner :
 
-## Utilisation avec Docker Compose (local)
-
-### Demarrer
-
-```powershell
-docker compose up -d --build
 ```
-
-### Verifier l'etat
-
-```powershell
-docker compose ps
-```
-
-Services attendus : `backend`, `frontend`, `minio`
-
-### Ouvrir les interfaces
-
-| Interface | URL |
-|-----------|-----|
-| Frontend Streamlit | `http://localhost:8501` |
-| API (documentation) | `http://localhost:8000/docs` |
-| MinIO (console) | `http://localhost:9001` |
-
-### Arreter
-
-```powershell
-docker compose down          # arret simple
-docker compose down -v       # arret + suppression des volumes
+HF_TOKEN=<token depuis huggingface.co/settings/tokens>
+HF_REPO_ID=<votre-username>/<nom-du-repo>
+DATABASE_URL=<url neon — laisser vide si non utilisé>
 ```
 
 ---
 
-## Entrainer un modele
+## Entraîner les modèles
+
+### Option A — Pipeline principal (modèle de production)
 
 ```powershell
 python main.py
 ```
 
-Sorties attendues :
+Crée `artifacts/models/model_vX.joblib` et `artifacts/metrics/metrics_vX.json`.
+Chaque exécution crée un run dans MLFlow sous l'expérience `housing_price_prediction`.
 
-- `artifacts/models/model_vX.joblib`
-- `artifacts/models/model_latest.joblib`
-- `artifacts/metrics/metrics_vX.json`
+### Option B — Notebook A/B (modèles champion et challenger)
 
-## Publier le modele dans MinIO (local)
+Ouvrir et exécuter `notebooks/02_train_ab_models.ipynb` en entier.
+
+Ce notebook entraîne deux modèles :
+- **Modèle A** — RandomForestRegressor (champion)
+- **Modèle B** — GradientBoostingRegressor (challenger)
+
+Les modèles sont enregistrés dans MLFlow (`housing_model_A`, `housing_model_B`)
+et sauvegardés en `artifacts/models/model_v1.joblib` et `model_v2.joblib`.
+
+---
+
+## Workflow MLFlow
+
+### 1. Comparer les runs dans l'UI
 
 ```powershell
-python scripts/upload_model_to_minio.py
+mlflow ui
+# Ouvrir http://127.0.0.1:5000
 ```
 
-Les trois fichiers `model_latest.joblib`, `model_v1.joblib` et `model_v2.joblib`
-doivent etre presents dans le bucket `ml-models` pour activer le mode A/B complet.
+- Expérience `housing_ab_models` : runs model_A et model_B côte à côte
+- Expérience `housing_price_prediction` : historique du pipeline principal
+- Onglet **Models** : registre de tous les modèles versionnés
+
+### 2. Promouvoir les modèles en Production
+
+```powershell
+python -c "
+from mlflow.tracking import MlflowClient
+import warnings; warnings.filterwarnings('ignore')
+client = MlflowClient()
+for name in ['housing_model_A', 'housing_model_B']:
+    versions = client.search_model_versions(f\"name='{name}'\")
+    latest = max(versions, key=lambda v: int(v.version))
+    client.transition_model_version_stage(
+        name, latest.version, 'Production', archive_existing_versions=True
+    )
+    print(f'{name} v{latest.version} => Production')
+"
+```
+
+Ou depuis l'UI : onglet **Models** → choisir une version → **Stage → Transition to Production**.
+
+### 3. Uploader vers HuggingFace Hub
+
+```powershell
+python scripts/upload_model_to_hf.py
+```
+
+Le script refuse d'uploader si aucun modèle n'est en stage Production.
+Il charge automatiquement :
+- `housing_model_A @ Production` → `model_v1.joblib`
+- `housing_model_B @ Production` → `model_v2.joblib`
+- Meilleur R² dans `housing_price_prediction` → `model_latest.joblib`
 
 ---
 
-## Faire une prediction depuis le frontend
+## Faire une prédiction depuis le frontend
 
-1. Ouvrir `http://localhost:8501` (local) ou l'URL Render (production)
-2. Renseigner optionnellement un `user_id` (determine le routage A/B)
-3. Remplir les caracteristiques du logement
-4. Cliquer sur **Predire**
-5. Lire le resultat : prediction, variante utilisee (A ou B), version du modele
+1. Démarrer le backend : `uvicorn backend.app:app --reload --port 8000`
+2. Démarrer le frontend : `streamlit run frontend/streamlit_app.py`
+3. Ouvrir `http://localhost:8501`
+4. Renseigner optionnellement un `user_id` (détermine le routage A/B)
+5. Remplir les caractéristiques du logement et cliquer sur **Prédire**
 
 ---
 
-## Faire une prediction via l'API
+## Faire une prédiction via l'API
 
-### PowerShell (local)
+### PowerShell
 
 ```powershell
 $body = @{
@@ -144,10 +173,10 @@ Invoke-RestMethod `
   -Body $body
 ```
 
-### curl (production ou local)
+### curl
 
 ```bash
-curl -X POST https://ml-housing-backend.onrender.com/predict \
+curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "alice",
@@ -162,7 +191,7 @@ curl -X POST https://ml-housing-backend.onrender.com/predict \
   }'
 ```
 
-### Format de reponse
+### Format de réponse
 
 ```json
 {
@@ -177,20 +206,18 @@ curl -X POST https://ml-housing-backend.onrender.com/predict \
 
 | Champ | Description |
 |-------|-------------|
-| `prediction` | Prix estime (en centaines de milliers de dollars) |
-| `variant` | Modele utilise : `A` ou `B` |
-| `model_version` | Identifiant interne du modele (`model_v1`, `model_v2`, `legacy_single_model`) |
-| `execution_mode` | `ab_registry` si les deux modeles sont disponibles, `legacy_fallback` sinon |
-| `latency_ms` | Temps de traitement cote serveur en millisecondes |
-| `request_id` | UUID unique de la requete pour le traçage |
+| `prediction` | Prix estimé (en centaines de milliers de dollars) |
+| `variant` | Modèle utilisé : `A` ou `B` |
+| `execution_mode` | `ab_registry` si les deux modèles sont disponibles, `legacy_fallback` sinon |
+| `latency_ms` | Temps de traitement côté serveur en millisecondes |
+| `request_id` | UUID unique de la requête pour le traçage |
 
-> **Routage A/B** : le champ `user_id` est optionnel (defaut : `"anonymous"`).
-> Le routage est deterministe — le meme `user_id` retourne toujours la meme variante.
-> Avec 50 % de trafic vers B : `"alice"` → B, `"anonymous"` → A.
+> **Routage A/B** : le champ `user_id` est optionnel (défaut : `"anonymous"`).
+> Le routage est déterministe — le même `user_id` retourne toujours la même variante.
 
 ---
 
-## Deploiement en production sur Render.com
+## Déploiement en production sur Render.com
 
 ### Architecture de production
 
@@ -202,173 +229,86 @@ Frontend Streamlit (Render, port 8501)
     │  HTTP
     ▼
 Backend FastAPI (Render, port 8000)
-    │  S3 API
+    │  HTTPS
     ▼
-Cloudflare R2 (stockage des modeles .joblib)
+HuggingFace Hub (stockage des modèles .joblib)
 ```
 
-### Prerequis avant le premier deploiement
+### Prérequis avant le premier déploiement
 
-| Ressource | Ou la creer |
+| Ressource | Où la créer |
 |-----------|-------------|
-| Bucket R2 `ml-models` avec les 3 fichiers `.joblib` | dash.cloudflare.com → R2 |
-| Registry Credential GHCR dans Render | dashboard.render.com → Account Settings → Registry Credentials |
-| Service backend Render (image `ghcr.io/.../backend:latest`, port 8000) | dashboard.render.com → New → Web Service |
-| Service frontend Render (image `ghcr.io/.../frontend:latest`, port 8501) | dashboard.render.com → New → Web Service |
-| Cle API Render | dashboard.render.com → Account Settings → API Keys |
+| Repo HF avec les 3 fichiers `.joblib` | huggingface.co → New Model |
+| Token HF avec permission write | huggingface.co/settings/tokens |
+| Service backend Render (Docker ou Python) | dashboard.render.com → New → Web Service |
+| Service frontend Render | dashboard.render.com → New → Web Service |
 
-Variables d'environnement a definir dans le service **backend** Render :
+### Variables à définir dans le service **backend** Render
 
 | Variable | Valeur |
 |----------|--------|
-| `MINIO_ENDPOINT` | `https://<account_id>.r2.cloudflarestorage.com` |
-| `MINIO_BUCKET_MODELS` | `ml-models` |
+| `HF_TOKEN` | Token HuggingFace (secret) |
+| `HF_REPO_ID` | `<username>/<repo>` |
 | `MODEL_OBJECT_NAME` | `model_latest.joblib` |
 | `MODEL_A_OBJECT_NAME` | `model_v1.joblib` |
 | `MODEL_B_OBJECT_NAME` | `model_v2.joblib` |
 | `AB_TRAFFIC_B_PERCENT` | `50` |
-| `MINIO_ACCESS_KEY` | *(secret — cle R2)* |
-| `MINIO_SECRET_KEY` | *(secret — cle R2)* |
+| `DATABASE_URL` | URL PostgreSQL Neon (optionnel) |
 
-Variable d'environnement a definir dans le service **frontend** Render :
+### Variable à définir dans le service **frontend** Render
 
 | Variable | Valeur |
 |----------|--------|
-| `BACKEND_URL` | `https://ml-housing-backend.onrender.com` |
+| `BACKEND_URL` | URL du backend (ex : `https://votre-backend.onrender.com`) |
 
-Secrets et variables a configurer dans **GitHub**
-(Settings → Secrets and variables → Actions) :
-
-| Type | Nom | Valeur |
-|------|-----|--------|
-| Secret | `RENDER_API_KEY` | Cle API Render |
-| Secret | `MINIO_ACCESS_KEY` | Access Key ID Cloudflare R2 |
-| Secret | `MINIO_SECRET_KEY` | Secret Access Key Cloudflare R2 |
-| Variable | `RENDER_BACKEND_SERVICE_ID` | `srv-xxxx` (Settings du service Render) |
-| Variable | `RENDER_FRONTEND_SERVICE_ID` | `srv-yyyy` |
-
-> Le guide complet pas a pas est disponible dans `Guide_Deploiement_Render.docx`
-> a la racine du projet.
-
-### Lancer un deploiement en production
-
-Le deploiement est **manuel** et ne peut s'effectuer que depuis la branche `main`.
-
-1. Merger `develop` dans `main` via une Pull Request
-2. Sur GitHub, aller dans **Actions → Production Deploy → Run workflow**
-3. Verifier que la branche selectionnee est `main`
-4. Cliquer sur **Run workflow**
-
-Le workflow execute deux jobs :
-
-| Job | Duree estimee | Ce qu'il fait |
-|-----|---------------|---------------|
-| `publish-images` | 5-10 min | Build et push des images Docker vers GHCR |
-| `deploy-render` | 3-15 min | Deploiement via l'API Render + attente du statut `live` |
-
-A la fin, l'onglet **Summary** du run affiche les URLs de production.
+> Le guide complet pas à pas est disponible dans `Docs/Guide_Deploiement_Render.docx`
 
 ---
 
-## Verification rapide
-
-### Sante du backend
+## Tests et qualité
 
 ```powershell
-# Local
-Invoke-RestMethod -Uri http://localhost:8000/health
-
-# Production
-Invoke-RestMethod -Uri https://ml-housing-backend.onrender.com/health
+pytest -v --cov=src --cov=backend     # tests et couverture
+ruff check .                           # lint PEP8
+ruff format --check .                  # format
+bandit -r src/ backend/                # sécurité
 ```
 
-Reponse attendue : `{ "status": "ok" }`
-
-### Logs
+Le hook `pre-push` lance ces vérifications automatiquement à chaque push :
 
 ```powershell
-# Local
-docker compose logs -f backend
-docker compose logs -f frontend
-
-# Production : onglet Logs de chaque service dans dashboard.render.com
+powershell -ExecutionPolicy Bypass -File scripts\install_git_hook.ps1
 ```
-
-### Verification du modele dans MinIO (local)
-
-1. Ouvrir `http://localhost:9001`
-2. Se connecter avec `admin / password123`
-3. Ouvrir le bucket `ml-models`
-4. Verifier la presence de `model_latest.joblib`, `model_v1.joblib`, `model_v2.joblib`
 
 ---
 
-## Commandes utiles (local)
+## Analyse des logs A/B
 
-```powershell
-# Relancer un service specifique
-docker compose up -d --build backend
-docker compose up -d --build frontend
+Les prédictions en production sont loguées dans PostgreSQL (si `DATABASE_URL` est défini)
+ou en local dans `logs/ab_predictions.jsonl`.
 
-# Relancer apres mise a jour du modele
-python scripts/upload_model_to_minio.py
-docker compose restart backend
-
-# Tests et qualite
-pytest -v --cov=src --cov=backend
-ruff check .
-ruff format --check .
-black --check .
-bandit -r src/ backend/
-```
+Pour analyser les résultats, exécuter `notebooks/03_ab_analysis.ipynb`.
+Le notebook lit automatiquement PostgreSQL si `DATABASE_URL` est défini, sinon le fichier JSONL.
 
 ---
 
 ## Pannes courantes
 
-### Le backend ne demarre pas (local)
-
-Verifier :
-- les variables `MINIO_*` dans `.env`
-- que MinIO est bien demarre (`docker compose ps`)
-- que les fichiers `.joblib` sont presents dans le bucket `ml-models`
-
-### Le backend ne demarre pas (production Render)
-
-Verifier dans les logs Render :
-- `MINIO_ENDPOINT` : format exact `https://<account_id>.r2.cloudflarestorage.com`
-- `MINIO_ACCESS_KEY` et `MINIO_SECRET_KEY` : valeurs copiees depuis Cloudflare R2
-- Presence de `model_latest.joblib` dans le bucket R2
-
-### Le frontend ne joint pas le backend
-
-Local : verifier `BACKEND_URL`, le port `8000` et `docker compose ps`
-
-Production : verifier que `BACKEND_URL` dans le service frontend Render
-contient bien l'URL exacte du backend (sans slash final).
-Si le backend est sur le plan Free, il peut etre en veille — attendre 60 s.
-
-### Les predictions retournent `legacy_fallback`
-
-Le mode `legacy_fallback` s'active quand les modeles A/B ne sont pas trouves.
-Verifier que `model_v1.joblib` et `model_v2.joblib` sont presents dans le stockage
-et que `MODEL_A_OBJECT_NAME` / `MODEL_B_OBJECT_NAME` sont definis.
-
-### Le deploiement CI/CD echoue
-
-| Erreur | Cause probable |
-|--------|----------------|
-| 401 sur l'API Render | `RENDER_API_KEY` expire ou incorrect |
-| 404 sur l'API Render | `RENDER_BACKEND_SERVICE_ID` ou `RENDER_FRONTEND_SERVICE_ID` incorrect |
-| `build_failed` dans Render | Image GHCR inaccessible — verifier le Registry Credential |
-| Timeout de polling | Build Render trop long — relancer le workflow |
+| Symptôme | Cause probable | Solution |
+|----------|----------------|----------|
+| `execution_mode: legacy_fallback` | `model_v1.joblib` ou `model_v2.joblib` absent sur HF Hub | Relancer `upload_model_to_hf.py` après promotion MLFlow |
+| Erreur 500 sur `/predict` | Modèle non chargé | Vérifier les logs backend et la présence des `.joblib` sur HF Hub |
+| Erreur 422 sur `/predict` | Champ manquant ou type incorrect | Vérifier le format JSON de la requête |
+| `RuntimeError: Aucune version en Production` | Modèle non promu dans MLFlow | Lancer l'étape de promotion (voir Workflow MLFlow) |
+| Backend Render : 502 au démarrage | Cold start (plan Free) | Attendre 30-60 secondes et réessayer |
+| Frontend ne joint pas le backend | `BACKEND_URL` incorrect | Vérifier l'URL sans slash final dans les variables Render |
 
 ---
 
-## Maintenance recommandee
+## Maintenance recommandée
 
-- Executer `pytest`, `ruff`, `black` et `bandit` avant toute livraison
-- Lire les logs du backend apres tout redeploiement
-- Documenter toute evolution du schema d'entree dans `src/prediction/schemas.py`
-- Mettre a jour `requirements.txt` via `pip freeze > requirements.txt`
-  puis supprimer les lignes `-e git+...` generees automatiquement
+- Exécuter `pytest`, `ruff` et `bandit` avant toute livraison
+- Consulter `mlflow ui` pour comparer les métriques avant tout upload
+- Ne jamais bypasser la promotion MLFlow pour uploader directement un `.joblib`
+- Mettre à jour `requirements.txt` avec `pip freeze > requirements.txt`
+  puis nettoyer les lignes `-e git+...` générées automatiquement

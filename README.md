@@ -1,79 +1,76 @@
-[![CI Pipeline](https://github.com/rahiming/ml-housting-project/actions/workflows/ci.yml/badge.svg)](https://github.com/rahiming/ml-housting-project/actions/workflows/ci.yml)
-
 # ML Housing Project
 
-Projet MLOps de prediction de prix immobiliers base sur le dataset California Housing.
+Projet MLOps de prédiction de prix immobiliers basé sur le dataset California Housing.
 
-L'application embarque un mecanisme d'experimentation A/B : chaque requete est routee
-de facon deterministe vers le modele A ou B selon l'identifiant utilisateur.
+L'application embarque un mécanisme d'expérimentation A/B : chaque requête est routée
+de façon déterministe vers le modèle A (RandomForest) ou le modèle B (GradientBoosting)
+selon l'identifiant utilisateur.
 
 ## Architecture
 
 ```
 ml-housing-project/
-|-- backend/
-|   |-- app.py                     API FastAPI (predict, health, A/B routing)
-|   |-- services/
-|   |   |-- ab_router.py           Routage deterministe A/B par hash MD5
-|   |   |-- experiment_logger.py   Journalisation des experiences
-|   |   `-- model_registry.py      Registre des modeles A et B
-|   `-- storage/
-|       `-- s3_client.py           Client MinIO / S3
-|-- frontend/
-|   `-- streamlit_app.py
-|-- src/
-|   |-- common/features.py
-|   |-- prediction/
-|   |   |-- config.py
-|   |   |-- model_loader.py
-|   |   |-- predict.py
-|   |   `-- schemas.py
-|   `-- training/
-|       |-- data.py
-|       |-- pipeline.py
-|       |-- preprocessing.py
-|       |-- train.py
-|       `-- evaluate.py
-|-- scripts/
-|   `-- upload_model_to_minio.py
-|-- tests/
-|-- artifacts/
-|   |-- models/
-|   `-- metrics/
-|-- .github/workflows/
-|   |-- ci.yml                     Lint, tests, securite, staging + production deploy
-|   `-- deploy-production.yml      Re-deploiement manuel d'urgence
-|-- docker-compose.yml
-|-- main.py
-|-- USER_MANUAL.md
-`-- README.md
+├── backend/
+│   ├── app.py                      API FastAPI (predict, health, A/B routing)
+│   ├── services/
+│   │   ├── ab_router.py            Routage déterministe A/B par hash MD5
+│   │   ├── experiment_logger.py    Logs vers PostgreSQL (prod) ou JSONL (local)
+│   │   └── model_registry.py       Registre des modèles A et B
+│   └── storage/
+│       └── hf_client.py            Client HuggingFace Hub
+├── frontend/
+│   └── streamlit_app.py
+├── src/
+│   ├── common/features.py
+│   ├── prediction/
+│   │   ├── model_loader.py
+│   │   ├── predict.py
+│   │   └── schemas.py
+│   └── training/
+│       ├── data.py
+│       ├── pipeline.py             Pipeline ML + tracking MLFlow
+│       ├── preprocessing.py
+│       ├── train.py
+│       └── evaluate.py
+├── notebooks/
+│   ├── 02_train_ab_models.ipynb    Entraînement des modèles A/B + MLFlow
+│   └── 03_ab_analysis.ipynb        Analyse des logs A/B (PostgreSQL ou JSONL)
+├── scripts/
+│   ├── upload_model_to_hf.py       Upload Registry MLFlow → HuggingFace Hub
+│   └── generate_mlflow_guide.py    Génère le guide MLFlow (docs/)
+├── tests/
+├── artifacts/
+│   ├── models/
+│   └── metrics/
+├── .github/workflows/
+│   ├── ci.yml                      Lint, tests, sécurité
+│   └── deploy-production.yml       Re-déploiement manuel d'urgence
+├── docker-compose.yml
+├── main.py
+├── USER_MANUAL.md
+└── README.md
 ```
 
-## Prerequis
+## Pipeline MLOps
+
+```
+notebooks/02_train_ab_models.ipynb
+        ↓  mlflow.log_model → registered_model_name
+MLFlow Model Registry  (mlruns/ local)
+        ↓  transition_model_version_stage → Production
+scripts/upload_model_to_hf.py
+        ↓  charge les modèles Production → HuggingFace Hub
+Backend FastAPI (Render)
+        ↓  télécharge les .joblib depuis HF Hub au démarrage
+Prédictions A/B en production
+```
+
+## Prérequis
 
 - Python 3.10+
-- Docker Desktop (pour le mode Compose)
+- Comptes gratuits : [HuggingFace](https://huggingface.co), [Render](https://render.com), [Neon](https://neon.tech) (optionnel pour les logs)
 
-## Demarrage rapide avec Docker Compose
-
-```powershell
-# 1. Entrainer les modeles (une seule fois, ou apres modification)
-python main.py
-
-# 2. Demarrer tous les services (build + seed automatique des modeles)
-docker compose up -d --build
-```
-
-Le service `model-seeder` uploade automatiquement les modeles dans MinIO au
-demarrage. Le backend attend sa completion avant de se lancer.
-
-| Interface | URL |
-|-----------|-----|
-| Frontend Streamlit | `http://localhost:8501` |
-| API FastAPI | `http://localhost:8000/docs` |
-| Console MinIO | `http://localhost:9001` (admin / password123) |
-
-## Installation locale (sans Docker)
+## Installation locale
 
 ```powershell
 python -m venv mon_env
@@ -82,26 +79,64 @@ pip install --upgrade pip
 pip install -r requirements.txt
 pip install -e ".[dev]"
 Copy-Item .env.example .env
+# Remplir .env avec vos propres valeurs
 ```
 
-## Entrainer les modeles
+## Variables d'environnement
+
+Copier `.env.example` vers `.env` et renseigner :
+
+| Variable | Description |
+|----------|-------------|
+| `HF_TOKEN` | Token HuggingFace (huggingface.co/settings/tokens) |
+| `HF_REPO_ID` | `<votre-username>/<nom-du-repo>` sur HF Hub |
+| `DATABASE_URL` | URL PostgreSQL Neon (optionnel — logs A/B durables) |
+| `MODEL_OBJECT_NAME` | Nom du fichier latest (défaut : `model_latest.joblib`) |
+| `MODEL_A_OBJECT_NAME` | Nom du modèle A (défaut : `model_v1.joblib`) |
+| `MODEL_B_OBJECT_NAME` | Nom du modèle B (défaut : `model_v2.joblib`) |
+| `AB_TRAFFIC_B_PERCENT` | % de trafic vers le modèle B (défaut : `50`) |
+| `BACKEND_URL` | URL du backend pour le frontend |
+
+## Entraîner les modèles
+
+### Pipeline principal (modèle de production)
 
 ```powershell
 python main.py
 ```
 
-Sorties :
+Sorties : `artifacts/models/model_vX.joblib`, `artifacts/models/model_latest.joblib`
 
-- `artifacts/models/model_vX.joblib`
-- `artifacts/models/model_latest.joblib`
-- `artifacts/metrics/metrics_vX.json`
+### Modèles A/B (notebook)
 
-Les trois fichiers `model_latest.joblib`, `model_v1.joblib` et `model_v2.joblib`
-doivent etre presents dans `artifacts/models/` pour activer le mode A/B complet.
+Exécuter `notebooks/02_train_ab_models.ipynb` en entier.
 
-## API de prediction
+Les modèles sont enregistrés dans MLFlow sous les noms `housing_model_A` et `housing_model_B`.
 
-### Exemple PowerShell
+## Workflow MLFlow
+
+```powershell
+# 1. Lancer l'UI MLFlow pour comparer les runs
+mlflow ui
+# Ouvrir http://127.0.0.1:5000
+
+# 2. Promouvoir les modèles A et B en Production
+python -c "
+from mlflow.tracking import MlflowClient
+import warnings; warnings.filterwarnings('ignore')
+client = MlflowClient()
+for name in ['housing_model_A', 'housing_model_B']:
+    versions = client.search_model_versions(f\"name='{name}'\")
+    latest = max(versions, key=lambda v: int(v.version))
+    client.transition_model_version_stage(name, latest.version, 'Production', archive_existing_versions=True)
+    print(f'{name} v{latest.version} => Production')
+"
+
+# 3. Uploader vers HuggingFace Hub (nécessite HF_TOKEN et HF_REPO_ID dans .env)
+python scripts/upload_model_to_hf.py
+```
+
+## API de prédiction
 
 ```powershell
 $body = @{
@@ -120,17 +155,7 @@ Invoke-RestMethod -Uri http://localhost:8000/predict -Method Post `
   -ContentType "application/json" -Body $body
 ```
 
-### Exemple curl
-
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{"user_id":"alice","median_income":3.5,"housing_median_age":20.0,
-       "average_rooms":5.0,"average_bedrooms":1.0,"population":1000.0,
-       "average_occupancy":3.0,"latitude":34.0,"longitude":-118.0}'
-```
-
-### Format de reponse
+### Format de réponse
 
 ```json
 {
@@ -145,109 +170,45 @@ curl -X POST http://localhost:8000/predict \
 
 | Champ | Description |
 |-------|-------------|
-| `prediction` | Prix estime en centaines de milliers de dollars |
-| `variant` | Modele utilise : `A` ou `B` |
-| `model_version` | `model_v1`, `model_v2` ou `legacy_single_model` |
+| `prediction` | Prix estimé en centaines de milliers de dollars |
+| `variant` | Modèle utilisé : `A` ou `B` |
 | `execution_mode` | `ab_registry` si A et B disponibles, `legacy_fallback` sinon |
 | `latency_ms` | Temps de traitement serveur en millisecondes |
-| `request_id` | UUID unique pour le tracage |
 
-Le champ `user_id` est optionnel (defaut : `"anonymous"`). Le routage est
-deterministe — le meme `user_id` retourne toujours la meme variante.
-
-## Variables d'environnement
-
-Copier `.env.example` vers `.env` et ajuster si necessaire.
-
-| Variable | Description |
-|----------|-------------|
-| `MINIO_ENDPOINT` | URL MinIO ou endpoint S3-compatible |
-| `MINIO_ACCESS_KEY` | Cle d'acces |
-| `MINIO_SECRET_KEY` | Cle secrete |
-| `MINIO_BUCKET_MODELS` | Nom du bucket (defaut : `ml-models`) |
-| `MODEL_OBJECT_NAME` | Modele principal (defaut : `model_latest.joblib`) |
-| `MODEL_A_OBJECT_NAME` | Modele variante A (defaut : `model_v1.joblib`) |
-| `MODEL_B_OBJECT_NAME` | Modele variante B (defaut : `model_v2.joblib`) |
-| `AB_TRAFFIC_B_PERCENT` | Pourcentage de trafic vers B (defaut : `50`) |
-| `BACKEND_URL` | URL du backend pour le frontend |
-
-## Tests et qualite
-
-### Workflow local complet (pre-push)
+## Tests et qualité
 
 ```powershell
-# Verification seule
-powershell -ExecutionPolicy Bypass -File scripts\workflow_local.ps1
-
-# Correction automatique + verification
-powershell -ExecutionPolicy Bypass -File scripts\workflow_local.ps1 -Fix
-
-# Avec build Docker et scans d'images
-powershell -ExecutionPolicy Bypass -File scripts\workflow_local.ps1 -Fix -WithDocker
+pytest -v --cov=src --cov=backend     # tests et couverture
+ruff check .                           # lint
+ruff format --check .                  # format
+bandit -r src/ backend/                # sécurité
 ```
 
-Installe le hook `pre-push` pour que le workflow se lance automatiquement a chaque push :
+Le hook `pre-push` lance ces vérifications automatiquement à chaque push :
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts\install_git_hook.ps1
 ```
 
-### Commandes individuelles
+## Déploiement (Render.com)
 
-```powershell
-pytest -v --cov=src --cov=backend     # tests et couverture
-ruff check .                           # lint
-ruff format --check .                  # format (ruff)
-black --check .                        # format (black)
-bandit -r src/ backend/                # securite
-pip-audit                              # vulnerabilites dependances
-```
+Le guide complet est disponible dans `Docs/Guide_Deploiement_Render.docx`.
 
-## CI/CD
-
-Le pipeline GitHub Actions (`ci.yml`) execute en sequence :
-
-| Job | Declenchement |
-|-----|---------------|
-| lint, format, tests, security, dependency-vulnerabilities, structure | push + PR sur `develop` et `main` |
-| docker-validate (build + smoke tests + Trivy) | idem, apres les jobs precedents |
-| deploy-staging (push images GHCR `:staging`) | push sur `develop` uniquement |
-| publish-prod-images + deploy-render | push sur `main` uniquement |
-
-Le deploiement en production se declenche automatiquement lors du merge de
-`develop` vers `main`. Un workflow de re-deploiement manuel est disponible
-dans l'onglet **Actions → Production Deploy**.
-
-## Deploiement en production (Render.com)
-
-L'application est deployee sur Render.com avec Cloudflare R2 comme stockage.
+Architecture de production :
 
 ```
-Utilisateur → Frontend Streamlit (Render) → Backend FastAPI (Render) → Cloudflare R2
+Utilisateur → Frontend Streamlit (Render) → Backend FastAPI (Render) → HuggingFace Hub
 ```
 
-Le guide de deploiement pas a pas est disponible dans `docs/Guide_Deploiement_Render.docx`.
-Les variables et secrets necessaires sont documentes dans [USER_MANUAL.md](USER_MANUAL.md).
+Variables à définir dans le service **backend** Render :
+`HF_TOKEN`, `HF_REPO_ID`, `DATABASE_URL` (optionnel), `MODEL_OBJECT_NAME`,
+`MODEL_A_OBJECT_NAME`, `MODEL_B_OBJECT_NAME`, `AB_TRAFFIC_B_PERCENT`
 
-## Logs
+## Documentation
 
-```powershell
-docker compose logs -f backend
-docker compose logs -f frontend
-```
-
-## Depannage rapide
-
-| Symptome | Cause probable |
-|----------|----------------|
-| `execution_mode: legacy_fallback` | `model_v1.joblib` ou `model_v2.joblib` absent dans MinIO |
-| Erreur 500 sur `/predict` | Modele non charge — verifier les logs backend |
-| Erreur 422 sur `/predict` | Champ manquant ou type incorrect dans le JSON |
-| Frontend n'atteint pas le backend | Verifier `BACKEND_URL` et `docker compose ps` |
-
-## Arreter les services
-
-```powershell
-docker compose down       # arret simple
-docker compose down -v    # arret + suppression des volumes MinIO
-```
+| Guide | Contenu |
+|-------|---------|
+| `Docs/Guide_MLFlow.docx` | Intégration MLFlow + MLOps + Registry |
+| `Docs/Guide_Deploiement_Render.docx` | Déploiement sur Render.com |
+| `Docs/Guide_AB_Deployment.docx` | Architecture A/B testing |
+| `USER_MANUAL.md` | Manuel d'utilisation complet |
